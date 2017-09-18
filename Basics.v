@@ -6,7 +6,7 @@
           ###  PLEASE DO NOT DISTRIBUTE SOLUTIONS PUBLICLY  ###
           #####################################################
 
-   (See the [Preface] for why.) 
+   (See the [Preface] for why.)
 
 *)
 
@@ -650,7 +650,7 @@ Proof.
     your browser, if you are viewing both. In [.v] files, we write the
     [forall] universal quantifier using the reserved identifier
     "forall."  When the [.v] files are converted to HTML, this gets
-    transformed into an upside-down-A symbol.) 
+    transformed into an upside-down-A symbol.)
 
     This is a good place to mention that [reflexivity] is a bit
     more powerful than we have admitted. In the examples we have seen,
@@ -815,8 +815,8 @@ Proof.
 (** We can also use the [rewrite] tactic with a previously proved
     theorem instead of a hypothesis from the context. If the statement
     of the previously proved theorem involves quantified variables,
-    as in the example below, Coq tries to instantiate them 
-    by matching with the current goal. *)   
+    as in the example below, Coq tries to instantiate them
+    by matching with the current goal. *)
 
 Theorem mult_0_plus : forall n m : nat,
   (0 + n) * m = n * m.
@@ -963,7 +963,7 @@ Proof.
 Qed.
 
 (** Each pair of calls to [reflexivity] corresponds to the
-    subgoals that were generated after the execution of the [destruct c] 
+    subgoals that were generated after the execution of the [destruct c]
     line right above it. *)
 
 (** Besides [-] and [+], we can use [*] (asterisk) as a third kind of
@@ -1042,7 +1042,7 @@ Qed.
     bullets when you use [destruct]. *)
 
 Theorem andb_true_elim2 : forall b c : bool,
-  andb b c = true -> c = true. 
+  andb b c = true -> c = true.
 Proof.
   intros b c. destruct b.
   - destruct c.
@@ -1142,7 +1142,14 @@ Fixpoint plus' (n : nat) (m : nat) : nat :=
     _does_ terminate on all inputs, but that Coq will reject because
     of this restriction. *)
 
-(* FILL IN HERE TODO *)
+(* Fixpoint div (m : nat) (n : nat) : nat := *)
+(*   match n with                            *)
+(*   | O => O                                *)
+(*   | _ => match (leb m n) with             *)
+(*     | false => O                          *)
+(*     | true => pred (div (m-n) n)          *)
+(*     end                                   *)
+(*   end.                                    *)
 (** [] *)
 
 (* ################################################################# *)
