@@ -182,14 +182,20 @@ Qed.
 Theorem evenb_S : forall n : nat,
   evenb (S n) = negb (evenb n).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction n as [| n' IHn'].
+  - (* n = 0 *) reflexivity.
+  - (* n = S n' *) rewrite -> IHn'. simpl. destruct (evenb n').
+    + reflexivity.
+    + reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star (destruct_induction)  *)
 (** Briefly explain the difference between the tactics [destruct] 
     and [induction].
 
-(* FILL IN HERE *)
+(* Destructs simply lists the possibles values, induction does... an induction.
+* *)
 *)
 (** [] *)
 
@@ -277,17 +283,40 @@ Proof.
 Theorem plus_swap : forall n m p : nat,
   n + (m + p) = m + (n + p).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m p.
+  assert (H: p + n = n + p).
+  { rewrite -> plus_comm. reflexivity. }
+  rewrite <- plus_comm. rewrite <- H. rewrite <- plus_assoc. reflexivity.
+Qed.
 
 (** Now prove commutativity of multiplication.  (You will probably
     need to define and prove a separate subsidiary theorem to be used
     in the proof of this one.  You may find that [plus_swap] comes in
     handy.) *)
 
+Theorem mult_S_1 : forall n' m : nat,
+  (S n') * m = m + n' * m.
+Proof.
+  intros. simpl. reflexivity.
+Qed.
+
+Theorem mult_1_S : forall n' m : nat,
+  m * (S n') = m * n' + m.
+Proof.
+  induction m as [| m' IHm'].
+  - (* m = 0 *) reflexivity.
+  - (* m = S m' *) simpl. rewrite -> IHm'. rewrite plus_assoc.
+     rewrite <- plus_n_Sm. reflexivity.
+Qed.
+
 Theorem mult_comm : forall m n : nat,
   m * n = n * m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction m as [| m' IHm'].
+  - (* m = 0 *) intros n. rewrite -> mult_0_l. rewrite -> mult_0_r. reflexivity.
+  - (* m = S m' *) intros n. simpl. rewrite -> IHm'. rewrite mult_1_S.
+    rewrite plus_comm. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (more_exercises)  *)
@@ -302,31 +331,44 @@ Proof.
 Theorem leb_refl : forall n:nat,
   true = leb n n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction n as [| n' IHn'].
+  - (* n = 0 *) reflexivity.
+  - (* n = S n' *) simpl. rewrite -> IHn'. reflexivity.
+Qed.
 
 Theorem zero_nbeq_S : forall n:nat,
   beq_nat 0 (S n) = false.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. simpl. reflexivity.
+Qed.
 
 Theorem andb_false_r : forall b : bool,
   andb b false = false.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. destruct b.
+  - reflexivity.
+  - reflexivity.
+Qed.
 
 Theorem plus_ble_compat_l : forall n m p : nat,
   leb n m = true -> leb (p + n) (p + m) = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m p. intros H.
+  induction p as [| p' IHp'].
+  - (* p = 0 *) simpl. rewrite -> H. reflexivity.
+  - (* p = S p' *) simpl. rewrite -> IHp'. reflexivity.
+Qed.
 
 Theorem S_nbeq_0 : forall n:nat,
   beq_nat (S n) 0 = false.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n. simpl. reflexivity.
+Qed.
 
 Theorem mult_1_l : forall n:nat, 1 * n = n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n. simpl. rewrite -> plus_n_O. reflexivity.
+Qed.
 
 Theorem all3_spec : forall b c : bool,
     orb
@@ -335,17 +377,31 @@ Theorem all3_spec : forall b c : bool,
                (negb c))
   = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros b c. destruct b.
+  - destruct c.
+    + reflexivity.
+    + reflexivity.
+  - destruct c
+    + reflexivity.
+    + reflexivity.
+Qed.
 
 Theorem mult_plus_distr_r : forall n m p : nat,
   (n + m) * p = (n * p) + (m * p).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m p. induction p as [| p' IHp'].
+  - (* p = 0 *) rewrite -> ?mult_0_r. reflexivity.
+  - (* p = S p' *) rewrite -> mult_comm. simpl. rewrite -> mult_comm.
+    rewrite plus_comm. rewrite -> IHp'. rewrite mult_1_S. rewrite mult_1_S.
+    rewrite <- mult_comm. rewrite <- plus_swap. rewrite plus_assoc.
+    rewrite plus_swap. rewrite ?plus_assoc. reflexivity.
+Qed.
 
 Theorem mult_assoc : forall n m p : nat,
   n * (m * p) = (n * m) * p.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+Admitted.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (beq_nat_refl)  *)
