@@ -125,7 +125,7 @@ Proof.
   - (* n = S n' *) simpl. rewrite -> IHn'. reflexivity.
 Qed.
 
-Theorem plus_n_Sm : forall n m : nat, 
+Theorem plus_n_Sm : forall n m : nat,
   S (n + m) = n + (S m).
 Proof.
   induction n as [| n' IHn'].
@@ -191,7 +191,7 @@ Qed.
 (** [] *)
 
 (** **** Exercise: 1 star (destruct_induction)  *)
-(** Briefly explain the difference between the tactics [destruct] 
+(** Briefly explain the difference between the tactics [destruct]
     and [induction].
 
 (* Destructs simply lists the possibles values, induction does... an induction.
@@ -253,7 +253,7 @@ Theorem plus_rearrange_firsttry : forall n m p q : nat,
   (n + m) + (p + q) = (m + n) + (p + q).
 Proof.
   intros n m p q.
-  (* We just need to swap (n + m) for (m + n)... seems 
+  (* We just need to swap (n + m) for (m + n)... seems
      like plus_comm should do the trick! *)
   rewrite -> plus_comm.
   (* Doesn't work...Coq rewrote the wrong plus! *)
@@ -400,8 +400,11 @@ Qed.
 Theorem mult_assoc : forall n m p : nat,
   n * (m * p) = (n * m) * p.
 Proof.
-  intros.
-Admitted.
+  intros. induction n as [| n' IHn'].
+  - (* n = 0 *) rewrite ?mult_0_l. reflexivity.
+  - (* n = S n' *) rewrite mult_S_1. rewrite mult_S_1.
+  rewrite mult_plus_distr_r. rewrite IHn'. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (beq_nat_refl)  *)
@@ -414,7 +417,10 @@ Admitted.
 Theorem beq_nat_refl : forall n : nat,
   true = beq_nat n n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction n as [| n' IHn'].
+  - (* n = 0 *) simpl. reflexivity.
+  - (* n = S n' *) simpl. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (plus_swap')  *)
@@ -430,7 +436,11 @@ Proof.
 Theorem plus_swap' : forall n m p : nat,
   n + (m + p) = m + (n + p).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m p. replace (p + n) with (n + p).
+  rewrite plus_comm. rewrite <- plus_assoc. replace (p + n) with (n + p).
+  reflexivity.
+  { rewrite -> plus_comm. reflexivity. }
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, recommended (binary_commute)  *)
@@ -447,9 +457,9 @@ Proof.
               nat ----------------------> nat
                              S
 
-    That is, incrementing a binary number and then converting it to 
+    That is, incrementing a binary number and then converting it to
     a (unary) natural number yields the same result as first converting
-    it to a natural number and then incrementing.  
+    it to a natural number and then incrementing.
     Name your theorem [bin_to_nat_pres_incr] ("pres" for "preserves").
 
     Before you start working on this exercise, please copy the
@@ -458,7 +468,43 @@ Proof.
     wanting to change your original definitions to make the property
     easier to prove, feel free to do so! *)
 
-(* FILL IN HERE *)
+Inductive bin : Type :=
+| Z : bin
+| D : bin -> bin
+| DP : bin -> bin.
+
+Fixpoint incr (n : bin) : bin :=
+  match n with
+  | Z => DP Z
+  | D n' => DP n'
+  | DP n' => D (incr n')
+  end.
+
+Fixpoint bin_to_nat (n : bin) : nat :=
+  match n with
+  | Z => 0
+  | D n' => 2 * (bin_to_nat n')
+  | DP n' => 2 * (bin_to_nat n') + 1
+  end.
+
+Theorem btn_n_1 : forall n : bin,
+  bin_to_nat (incr n) = bin_to_nat n + 1.
+Proof.
+  Admitted.
+
+Theorem bin_to_nat_pres_incr : forall n : bin,
+  S (bin_to_nat n) = bin_to_nat (incr n).
+Proof.
+  induction n as [| n' IHn'| n' IHn'].
+  - (* n = 0 *) simpl. reflexivity.
+  - (* n = D n' *) simpl. rewrite <- plus_n_O. rewrite plus_n_Sm. rewrite IHn'.
+    rewrite btn_n_1. rewrite plus_assoc. reflexivity.
+  - (* n = DP n' *) simpl. rewrite <- ?plus_n_O. rewrite plus_n_Sm.
+    rewrite btn_n_1. rewrite plus_swap.
+    assert (H: bin_to_nat n' + 1 + 1 = bin_to_nat n' + 2).
+    { rewrite plus_comm. rewrite plus_swap. reflexivity. }
+    rewrite H. rewrite plus_assoc. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced (binary_inverse)  *)
@@ -486,7 +532,45 @@ Proof.
     Again, feel free to change your earlier definitions if this helps
     here. *)
 
-(* FILL IN HERE *)
+Fixpoint nat_to_bin (n : nat) : bin :=
+  match n with
+  | O => Z
+  | S n' => incr (nat_to_bin n')
+  end.
+
+Theorem n2b2n : forall n : nat,
+  bin_to_nat (nat_to_bin n) = n.
+Proof.
+  induction n as [| n' IHn'].
+  - (* n = 0 *) reflexivity.
+  - (* n = S n' *) simpl. rewrite <- bin_to_nat_pres_incr. rewrite IHn'.
+    reflexivity.
+Qed.
+
+(* D zero ?= zero TODO
+* Zeros at the beginning. *)
+
+Fixpoint normalize (n : bin) : bin :=
+  match n with
+  | Z => Z
+  | D n' => D (normalize n')
+  | DP n' => DP (normalize n')
+  end.
+
+Theorem n2b_plus_id : forall n : nat ,
+  nat_to_bin (n + n) = D (nat_to_bin n).
+Proof.
+  Admitted.
+
+Theorem b2n2b : forall n : bin,
+  nat_to_bin (bin_to_nat n) = normalize n.
+Proof.
+  induction n as [| n' IHn'| n' IHn'].
+  - (* n = 0 *) simpl. reflexivity.
+  - (* n = D n' *) simpl. rewrite <- plus_n_O. rewrite <- IHn'.
+    rewrite n2b_plus_id. reflexivity.
+  - (* n = DP n' *) simpl. rewrite <- plus_n_O. rewrite <- IHn'.
+Admitted.
 (** [] *)
 
 (* ################################################################# *)
@@ -610,8 +694,24 @@ Proof.
 (** Translate your solution for [plus_comm] into an informal proof:
 
     Theorem: Addition is commutative.
+> Proof.
+>   induction n as [| n' IHn'].
+>   - (* n = 0 *) intros m. simpl. rewrite <- plus_n_O. reflexivity.
+>   - (* n = S n' *) intros m. simpl. rewrite -> IHn'. apply plus_n_Sm.
+> Qed.
 
-    Proof: (* FILL IN HERE *)
+    Proof: By induction on [n].
+    - First, suppose [n = 0]. We must show
+        0 + m = m + 0.
+      With the fact that 0 is the neutral element, we have m = m.
+    - Next, suppose [n = S n'], where
+        n' + m = m + n'
+      We must show
+        S n' + m = m + S n'.
+      We rewrite the left part as S (n' + m).
+      By the induction hypothesis we can rewrite with S (m + n').
+      With previously proved property we can rewrite with m + S n'.
+    _Qed._
 *)
 (** [] *)
 
@@ -622,7 +722,17 @@ Proof.
 
     Theorem: [true = beq_nat n n] for any [n].
 
-    Proof: (* FILL IN HERE *)
+    Proof: By induction on [n].
+    - First, suppose [n = 0]. We must show
+        true = beq_nat 0 0.
+      By applying the definition of beq_nat it is immediate.
+    - Next, suppose [n = S n'], where
+      true = beq_nat n' n'.
+      We must show
+        true = beq_nat (S n') (S n').
+      By applying the of definition of beq_nat, we have beq_nat n' n'.
+      Immediate with induction hypothesis.
+    _Qed._
 [] *)
 
 (** $Date: 2016-09-01 13:57:41 +0200 (Jeu, 01 sep 2016) $ *)
