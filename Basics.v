@@ -1047,10 +1047,10 @@ Proof.
   intros b c. destruct b.
   - destruct c.
     + reflexivity.
-    + simpl. tauto. (*to allow compilation with coqc*)
+    + simpl. intros H. rewrite H. reflexivity.
   - destruct c.
     + reflexivity.
-    + simpl. tauto.
+    + simpl. intros H. rewrite H. reflexivity.
   Qed.
 (** [] *)
 
