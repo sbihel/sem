@@ -490,7 +490,13 @@ Fixpoint bin_to_nat (n : bin) : nat :=
 Theorem btn_n_1 : forall n : bin,
   bin_to_nat (incr n) = bin_to_nat n + 1.
 Proof.
-  Admitted.
+  induction n as [| n' IHn'| n' IHn'].
+  - (* n = 0 *) simpl. reflexivity.
+  - (* n = D n' *) simpl. reflexivity.
+  - (* n = DP n' *) simpl. rewrite <- ?plus_n_O.
+    rewrite ?IHn'.
+    rewrite plus_swap. rewrite ?plus_assoc. reflexivity.
+Qed.
 
 Theorem bin_to_nat_pres_incr : forall n : bin,
   S (bin_to_nat n) = bin_to_nat (incr n).
@@ -553,14 +559,50 @@ Qed.
 Fixpoint normalize (n : bin) : bin :=
   match n with
   | Z => Z
-  | D n' => D (normalize n')
+  | D n' => match (normalize n') with
+            | Z => Z
+            | n'' => D n''
+            end
   | DP n' => DP (normalize n')
   end.
+
+Theorem incr_DP : forall n : bin,
+  incr (D n) = DP n.
+Proof.
+  intros n. simpl. reflexivity.
+Qed.
+
+Theorem incr_D : forall n : bin,
+  incr (D n) = D (incr n).
+Proof.
+  intros n. simpl. Admitted.
+
+Theorem incr_of_norm : forall n : bin,
+  normalize n = n -> normalize (incr n) = incr n.
+Proof.
+  induction n as [| n' IHn'| n' IHn'].
+  - (* n = 0 *) simpl. reflexivity.
+  - (* n = D n' *) intros H. rewrite incr_DP. simpl. Admitted.
+
+Theorem norm_incr : forall n : bin,
+  normalize (incr n) = incr n.
+Proof.
+  induction n as [| n' IHn'| n' IHn'].
+  - (* n = 0 *) simpl. reflexivity.
+  - (* n = D n' *) Admitted.
+
+Theorem nat_is_norm : forall n : nat,
+  n = bin_to_nat (normalize (nat_to_bin n)).
+Proof.
+  induction n as [| n' IHn'].
+  - (* n = 0 *) simpl. reflexivity.
+  - (* n = S n' *) simpl. Admitted.
 
 Theorem n2b_plus_id : forall n : nat ,
   nat_to_bin (n + n) = D (nat_to_bin n).
 Proof.
-  Admitted.
+  induction n as [| n' IHn'].
+  - (* n = 0 *) simpl. Admitted.
 
 Theorem b2n2b : forall n : bin,
   nat_to_bin (bin_to_nat n) = normalize n.
