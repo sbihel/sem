@@ -572,47 +572,77 @@ Proof.
   intros n. simpl. reflexivity.
 Qed.
 
-Theorem incr_D : forall n : bin,
-  incr (D n) = D (incr n).
-Proof.
-  intros n. simpl. Admitted.
-
-Theorem incr_of_norm : forall n : bin,
-  normalize n = n -> normalize (incr n) = incr n.
-Proof.
-  induction n as [| n' IHn'| n' IHn'].
-  - (* n = 0 *) simpl. reflexivity.
-  - (* n = D n' *) intros H. rewrite incr_DP. simpl. Admitted.
-
 Theorem norm_incr : forall n : bin,
-  normalize (incr n) = incr n.
+  normalize (incr n) = incr (normalize n).
 Proof.
   induction n as [| n' IHn'| n' IHn'].
   - (* n = 0 *) simpl. reflexivity.
-  - (* n = D n' *) Admitted.
+  - (* n = D n' *) simpl. destruct (normalize n').
+    + (* norm n' = Z *) simpl. reflexivity.
+    + (* norm n' = D b *) simpl. reflexivity.
+    + (* norm n' = DP b *) simpl. reflexivity.
+  - (* n = DP n' *) simpl. rewrite IHn'. destruct (normalize n').
+    + (* Z *) simpl. reflexivity.
+    + (* D (D b) *) simpl. reflexivity.
+    + (* D (DP b) *) simpl. reflexivity.
+Qed.
 
 Theorem nat_is_norm : forall n : nat,
-  n = bin_to_nat (normalize (nat_to_bin n)).
+  nat_to_bin n = normalize (nat_to_bin n).
 Proof.
   induction n as [| n' IHn'].
   - (* n = 0 *) simpl. reflexivity.
-  - (* n = S n' *) simpl. Admitted.
+  - (* n = S n' *) simpl. rewrite norm_incr.
+    replace (incr (nat_to_bin n')) with (incr (normalize (nat_to_bin n'))).
+    reflexivity.
+  { rewrite <- IHn'. reflexivity. }
+Qed.
+
 
 Theorem n2b_plus_id : forall n : nat ,
-  nat_to_bin (n + n) = D (nat_to_bin n).
+  nat_to_bin (n + n) = normalize (D (nat_to_bin n)).
 Proof.
   induction n as [| n' IHn'].
-  - (* n = 0 *) simpl. Admitted.
+  - (* n = 0 *) simpl. reflexivity.
+  - (* n = S n' *)
+    replace (D (nat_to_bin (S n'))) with (nat_to_bin (S n' + S n')).
+    rewrite <- nat_is_norm. reflexivity.
+    { replace (nat_to_bin (S n')) with (incr (nat_to_bin n')).
+      rewrite <- plus_n_Sm. simpl. rewrite IHn'. rewrite <- norm_incr. simpl.
+      rewrite <- nat_is_norm. reflexivity.
+      { simpl. reflexivity. } }
+Qed.
+
+Theorem norm_of_norm : forall n : bin,
+  normalize (normalize n) = normalize n.
+Proof.
+  induction n as [| n' IHn'| n' IHn'].
+    - (* Z *) simpl. reflexivity.
+    - (* D n' *) simpl. destruct (normalize n').
+      + (* Z *) simpl. reflexivity.
+      + (* D b *)
+        replace (normalize (D (D b))) with (match (normalize (D b)) with | Z =>
+        Z | D b0 => D (D b0) | DP b0 => D (DP b0) end). (* Hardest line to find *)
+        rewrite IHn'. reflexivity.
+        { simpl. reflexivity. }
+      + (* DP b *) simpl. rewrite <- IHn'. simpl. reflexivity.
+    - (* DP n' *) simpl. rewrite IHn'. reflexivity.
+Qed.
 
 Theorem b2n2b : forall n : bin,
   nat_to_bin (bin_to_nat n) = normalize n.
 Proof.
   induction n as [| n' IHn'| n' IHn'].
   - (* n = 0 *) simpl. reflexivity.
-  - (* n = D n' *) simpl. rewrite <- plus_n_O. rewrite <- IHn'.
-    rewrite n2b_plus_id. reflexivity.
-  - (* n = DP n' *) simpl. rewrite <- plus_n_O. rewrite <- IHn'.
-Admitted.
+  - (* n = D n' *) simpl. rewrite <- plus_n_O. rewrite n2b_plus_id.
+    destruct n'.
+    + simpl. reflexivity.
+    + rewrite <- IHn'. simpl. rewrite <- nat_is_norm. reflexivity.
+    + rewrite <- IHn'. simpl. rewrite <- nat_is_norm. reflexivity.
+  - (* n = DP n' *) simpl. rewrite <- plus_n_O. rewrite <- plus_n_Sm.
+    rewrite <- plus_n_O. simpl. rewrite n2b_plus_id. rewrite IHn'.
+    rewrite <- norm_incr. simpl. rewrite norm_of_norm. reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
