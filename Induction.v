@@ -346,8 +346,8 @@ Theorem andb_false_r : forall b : bool,
   andb b false = false.
 Proof.
   intros. destruct b.
-  - reflexivity.
-  - reflexivity.
+  - (* true *) reflexivity.
+  - (* false *) reflexivity.
 Qed.
 
 Theorem plus_ble_compat_l : forall n m p : nat,
@@ -395,6 +395,7 @@ Proof.
     rewrite plus_comm. rewrite -> IHp'. rewrite mult_1_S. rewrite mult_1_S.
     rewrite <- mult_comm. rewrite <- plus_swap. rewrite plus_assoc.
     rewrite plus_swap. rewrite ?plus_assoc. reflexivity.
+    (* Just a bunch of unfolding and rewriting *)
 Qed.
 
 Theorem mult_assoc : forall n m p : nat,
@@ -403,7 +404,7 @@ Proof.
   intros. induction n as [| n' IHn'].
   - (* n = 0 *) rewrite ?mult_0_l. reflexivity.
   - (* n = S n' *) rewrite mult_S_1. rewrite mult_S_1.
-  rewrite mult_plus_distr_r. rewrite IHn'. reflexivity.
+    rewrite mult_plus_distr_r. rewrite IHn'. reflexivity.
 Qed.
 (** [] *)
 
@@ -437,6 +438,7 @@ Theorem plus_swap' : forall n m p : nat,
   n + (m + p) = m + (n + p).
 Proof.
   intros n m p. replace (p + n) with (n + p).
+  (* We want to replace just that specific addition *)
   rewrite plus_comm. rewrite <- plus_assoc. replace (p + n) with (n + p).
   reflexivity.
   { rewrite -> plus_comm. reflexivity. }
@@ -553,8 +555,9 @@ Proof.
     reflexivity.
 Qed.
 
-(* D zero ?= zero TODO
-* Zeros at the beginning. *)
+(* With this binary definition we can have Z and D Z (0 and 00 put in other
+* words) which are two different instances/objects. When we translate them in
+* nat we have 0 and (2 * 0 = 0). *)
 
 Fixpoint normalize (n : bin) : bin :=
   match n with
@@ -565,12 +568,8 @@ Fixpoint normalize (n : bin) : bin :=
             end
   | DP n' => DP (normalize n')
   end.
-
-Theorem incr_DP : forall n : bin,
-  incr (D n) = DP n.
-Proof.
-  intros n. simpl. reflexivity.
-Qed.
+(* Remove 'D's before 'Z' as it has no effect but generate different objects
+  * with the same meaning. *)
 
 Theorem norm_incr : forall n : bin,
   normalize (incr n) = incr (normalize n).
@@ -582,9 +581,9 @@ Proof.
     + (* norm n' = D b *) simpl. reflexivity.
     + (* norm n' = DP b *) simpl. reflexivity.
   - (* n = DP n' *) simpl. rewrite IHn'. destruct (normalize n').
-    + (* Z *) simpl. reflexivity.
-    + (* D (D b) *) simpl. reflexivity.
-    + (* D (DP b) *) simpl. reflexivity.
+    + (* norm n' = Z *) simpl. reflexivity.
+    + (* norm n' = D (D b) *) simpl. reflexivity.
+    + (* norm n' = D (DP b) *) simpl. reflexivity.
 Qed.
 
 Theorem nat_is_norm : forall n : nat,
@@ -595,11 +594,11 @@ Proof.
   - (* n = S n' *) simpl. rewrite norm_incr.
     replace (incr (nat_to_bin n')) with (incr (normalize (nat_to_bin n'))).
     reflexivity.
-  { rewrite <- IHn'. reflexivity. }
+    { rewrite <- IHn'. reflexivity. }
 Qed.
 
 
-Theorem n2b_plus_id : forall n : nat ,
+Theorem Dnat_is_norm : forall n : nat ,
   nat_to_bin (n + n) = normalize (D (nat_to_bin n)).
 Proof.
   induction n as [| n' IHn'].
@@ -621,26 +620,32 @@ Proof.
     - (* D n' *) simpl. destruct (normalize n').
       + (* Z *) simpl. reflexivity.
       + (* D b *)
-        replace (normalize (D (D b))) with (match (normalize (D b)) with | Z =>
-        Z | D b0 => D (D b0) | DP b0 => D (DP b0) end). (* Hardest line to find *)
+        replace (normalize (D (D b))) with
+          (match (normalize (D b)) with
+            | Z => Z
+            | D b0 => D (D b0)
+            | DP b0 => D (DP b0)
+            end). (* Hardest line to find *)
+        (* A simpl. would have replaced both D with a match when we want to
+        * replace only one. *)
         rewrite IHn'. reflexivity.
         { simpl. reflexivity. }
       + (* DP b *) simpl. rewrite <- IHn'. simpl. reflexivity.
     - (* DP n' *) simpl. rewrite IHn'. reflexivity.
 Qed.
 
-Theorem b2n2b : forall n : bin,
+Theorem bin_to_nat_to_bin : forall n : bin,
   nat_to_bin (bin_to_nat n) = normalize n.
 Proof.
   induction n as [| n' IHn'| n' IHn'].
   - (* n = 0 *) simpl. reflexivity.
-  - (* n = D n' *) simpl. rewrite <- plus_n_O. rewrite n2b_plus_id.
+  - (* n = D n' *) simpl. rewrite <- plus_n_O. rewrite Dnat_is_norm.
     destruct n'.
-    + simpl. reflexivity.
-    + rewrite <- IHn'. simpl. rewrite <- nat_is_norm. reflexivity.
-    + rewrite <- IHn'. simpl. rewrite <- nat_is_norm. reflexivity.
+    + (* Z *) simpl. reflexivity.
+    + (* D n' *) rewrite <- IHn'. simpl. rewrite <- nat_is_norm. reflexivity.
+    + (* DP n' *) rewrite <- IHn'. simpl. rewrite <- nat_is_norm. reflexivity.
   - (* n = DP n' *) simpl. rewrite <- plus_n_O. rewrite <- plus_n_Sm.
-    rewrite <- plus_n_O. simpl. rewrite n2b_plus_id. rewrite IHn'.
+    rewrite <- plus_n_O. simpl. rewrite Dnat_is_norm. rewrite IHn'.
     rewrite <- norm_incr. simpl. rewrite norm_of_norm. reflexivity.
 Qed.
 (** [] *)
