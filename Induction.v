@@ -381,7 +381,7 @@ Proof.
   - destruct c.
     + reflexivity.
     + reflexivity.
-  - destruct c
+  - destruct c.
     + reflexivity.
     + reflexivity.
 Qed.
@@ -420,7 +420,7 @@ Theorem beq_nat_refl : forall n : nat,
 Proof.
   induction n as [| n' IHn'].
   - (* n = 0 *) simpl. reflexivity.
-  - (* n = S n' *) simpl. reflexivity.
+  - (* n = S n' *) simpl. rewrite IHn'. reflexivity.
 Qed.
 (** [] *)
 
@@ -441,6 +441,7 @@ Proof.
   (* We want to replace just that specific addition *)
   rewrite plus_comm. rewrite <- plus_assoc. replace (p + n) with (n + p).
   reflexivity.
+  { rewrite -> plus_comm. reflexivity. }
   { rewrite -> plus_comm. reflexivity. }
 Qed.
 (** [] *)
