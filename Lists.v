@@ -162,10 +162,10 @@ Definition mylist3 := [1;2;3].
    will be parsed, as we'd expect, as [(1 + 2) :: [3]] rather than [1
    + (2 :: [3])].
 
-   (Expressions like "[1 + 2 :: [3]]" can be a little confusing when 
-   you read them in a .v file.  The inner brackets, around 3, indicate 
-   a list, but the outer brackets, which are invisible in the HTML 
-   rendering, are there to instruct the "coqdoc" tool that the bracketed 
+   (Expressions like "[1 + 2 :: [3]]" can be a little confusing when
+   you read them in a .v file.  The inner brackets, around 3, indicate
+   a list, but the outer brackets, which are invisible in the HTML
+   rendering, are there to instruct the "coqdoc" tool that the bracketed
    part should be displayed as Coq code rather than running text.)
 
    The second and third [Notation] declarations above introduce the
@@ -426,7 +426,7 @@ Fixpoint remove_one (v:nat) (s:bag) : bag :=
   | nil => nil
   | x :: xs => match (beq_nat v x) with
                | true => xs
-               | false => remove_one v xs
+               | false => x :: (remove_one v xs)
                end
   end.
 
@@ -477,7 +477,7 @@ Fixpoint subset (s1:bag) (s2:bag) : bool :=
   | nil => true
   | x :: xs => match (beq_nat 0 (count x s2)) with
                | true => false
-               | false => subset xs s2
+               | false => subset xs (remove_one x s2)
                end
   end.
 
@@ -798,7 +798,7 @@ Proof.
 
     Coq's [SearchAbout] command is quite helpful with this.  Typing
     [SearchAbout foo] will cause Coq to display a list of all theorems
-    involving [foo].  For example, try uncommenting the following line 
+    involving [foo].  For example, try uncommenting the following line
     to see a list of theorems that we have proved about [rev]: *)
 
 (*  SearchAbout rev. *)
@@ -819,13 +819,27 @@ Proof.
 Theorem app_nil_r : forall l : natlist,
   l ++ [] = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction l as [| n l' IHl'].
+  - (* l = nil *) reflexivity.
+  - (* l = n :: l' *) simpl. rewrite IHl'. reflexivity.
+Qed.
 
+Theorem rev_app : forall l1 l2 : natlist,
+  rev (l1 ++ l2) = (rev l2) ++ (rev l1).
+Proof.
+  induction l1 as [| n l1' IHl1'].
+  - (* l1 = nil *) intros l2. simpl. rewrite app_nil_r. reflexivity.
+  - (* l1 = n :: l1' *) intros l2. simpl. rewrite IHl1'. rewrite app_assoc.
+    reflexivity.
+Qed.
 
 Theorem rev_involutive : forall l : natlist,
   rev (rev l) = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction l as [| n l' IHl'].
+  - (* l = nil *) reflexivity.
+  - (* l = n :: l' *) simpl. rewrite rev_app. rewrite IHl'. reflexivity.
+Qed.
 
 (** There is a short solution to the next one.  If you find yourself
     getting tangled up, step back and try to look for a simpler
@@ -834,14 +848,20 @@ Proof.
 Theorem app_assoc4 : forall l1 l2 l3 l4 : natlist,
   l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. rewrite app_assoc. rewrite app_assoc. reflexivity.
+Qed.
 
 (** An exercise about your implementation of [nonzeros]: *)
 
 Lemma nonzeros_app : forall l1 l2 : natlist,
   nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros l1 l2. induction l1 as [| n l1' IHl1'].
+  - (* l1 = nil *) reflexivity.
+  - (* l1 = n :: l1' *) destruct n.
+    + (* n = 0 *) simpl. rewrite IHl1'. reflexivity.
+    + (* n = S n' *) simpl. rewrite IHl1'. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars (beq_natlist)  *)
@@ -849,25 +869,37 @@ Proof.
     lists of numbers for equality.  Prove that [beq_natlist l l]
     yields [true] for every list [l]. *)
 
-Fixpoint beq_natlist (l1 l2 : natlist) : bool 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Fixpoint beq_natlist (l1 l2 : natlist) : bool :=
+  match l1 with
+  | nil => match l2 with
+           | nil => true
+           | y :: ys => false
+           end
+  | x :: xs => match l2 with
+               | nil => false
+               | y :: ys => (beq_nat x y) && (beq_natlist xs ys)
+               end
+  end.
 
 Example test_beq_natlist1 :
   (beq_natlist nil nil = true).
- (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Example test_beq_natlist2 :
   beq_natlist [1;2;3] [1;2;3] = true.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Example test_beq_natlist3 :
   beq_natlist [1;2;3] [1;2;4] = false.
- (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Theorem beq_natlist_refl : forall l:natlist,
   true = beq_natlist l l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction l as [| n l' IHl'].
+  - (* l = nil *) reflexivity.
+  - (* l = n :: l' *) simpl. rewrite IHl'. rewrite <- beq_nat_refl. reflexivity.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -880,7 +912,8 @@ Proof.
 Theorem count_member_nonzero : forall (s : bag),
   leb 1 (count 1 (1 :: s)) = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros s. simpl. reflexivity.
+Qed.
 
 (** The following lemma about [leb] might help you in the next proof. *)
 
@@ -896,15 +929,50 @@ Proof.
 Theorem remove_decreases_count: forall (s : bag),
   leb (count 0 (remove_one 0 s)) (count 0 s) = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction s as [| n s' IHs'].
+  - (* nil *) simpl. reflexivity.
+  - (* n :: s' *) destruct n.
+    + (* n = 0 *) simpl. rewrite ble_n_Sn. reflexivity.
+    + (* n = S n' *) simpl. rewrite IHs'. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (bag_count_sum)  *)
 (** Write down an interesting theorem [bag_count_sum] about bags
     involving the functions [count] and [sum], and prove it.*)
 
-(* FILL IN HERE *)
-(** [] *)
+(* Theorem match_plus : forall (cond : bool) (x y z : nat), *)
+(*   match cond with                                        *)
+(*   | true => x                                            *)
+(*   | false => y                                           *)
+(*   end + z =                                              *)
+(*   match cond with                                        *)
+(*   | true => x + z                                        *)
+(*   | false => y + z                                       *)
+(*   end.                                                   *)
+(* Proof.                                                   *)
+(*   induction z as [| z' IHz'].                            *)
+(*   - [> 0 <] rewrite <- ?plus_n_O. reflexivity.           *)
+(*   - (* S z' *) rewrite <- ?plus_n_Sm. rewrite IHz'.      *)
+
+(* Theorem bag_count_sum : forall (n : nat) (s1 s2 : bag), *)
+(*   count n (sum s1 s2) = (count n s1) + (count n s2).    *)
+(* Proof.                                                  *)
+(*   induction s1 as [| n' s1' IHs1'].                     *)
+(*   - [> nil <] intros. simpl. reflexivity.               *)
+(*   - [> n' :: s1' <] intros. destruct n'.                *)
+(*     + [> 0 <] destruct n.                               *)
+(*       * [> 0 <] simpl. rewrite IHs1'. reflexivity.      *)
+(*       * [> S n <] simpl. rewrite IHs1'. reflexivity.    *)
+(*     + [> S n' <] destruct n.                            *)
+(*       * [> 0 <] simpl. rewrite IHs1'. reflexivity.      *)
+(*       * [> S n <] simpl. rewrite IHs1'. reflexivity.    *)
+
+(*   intros. simpl. rewrite IHs1'.                         *)
+(*     replace (S (count n s1' + count n s2))              *)
+(*     with ((S (count n s1')) + (count n s2)).            *)
+(*     rewrite plus_n_Sm.                                  *)
+(* [>* [] <]                                               *)
 
 (** **** Exercise: 4 stars, advanced (rev_injective)  *)
 (** Prove that the [rev] function is injective -- that is,
@@ -1001,7 +1069,7 @@ Definition option_elim (d : nat) (o : natoption) : nat :=
 (** Using the same idea, fix the [hd] function from earlier so we don't
     have to pass a default element for the [nil] case.  *)
 
-Definition hd_error (l : natlist) : natoption 
+Definition hd_error (l : natlist) : natoption
   (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
 
 Example test_hd_error1 : hd_error [] = None.
@@ -1061,7 +1129,7 @@ Proof.
 
 Module PartialMap.
 Import NatList.
-  
+
 Inductive partial_map : Type :=
   | empty  : partial_map
   | record : id -> nat -> partial_map -> partial_map.
