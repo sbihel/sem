@@ -495,12 +495,17 @@ Proof. reflexivity. Qed.
     requires techniques you haven't learned yet.  Feel free to ask for
     help if you get stuck! *)
 
-(*
-Theorem bag_theorem : ...
+Theorem bag_theorem : forall (n m:nat) (s:bag),
+  (beq_nat n m) = false -> beq_nat (count n s) (count n (add m s)) = true.
 Proof.
-  ...
+  intros. simpl. rewrite H. rewrite <- beq_nat_refl. reflexivity.
 Qed.
-*)
+
+Theorem bag_theorem' : forall (n : nat) (s : bag),
+  S (count n s) = count n (add n s).
+Proof.
+  intros. simpl. rewrite <- beq_nat_refl. reflexivity.
+Qed.
 
 (** [] *)
 
@@ -941,38 +946,16 @@ Qed.
 (** Write down an interesting theorem [bag_count_sum] about bags
     involving the functions [count] and [sum], and prove it.*)
 
-(* Theorem match_plus : forall (cond : bool) (x y z : nat), *)
-(*   match cond with                                        *)
-(*   | true => x                                            *)
-(*   | false => y                                           *)
-(*   end + z =                                              *)
-(*   match cond with                                        *)
-(*   | true => x + z                                        *)
-(*   | false => y + z                                       *)
-(*   end.                                                   *)
-(* Proof.                                                   *)
-(*   induction z as [| z' IHz'].                            *)
-(*   - [> 0 <] rewrite <- ?plus_n_O. reflexivity.           *)
-(*   - (* S z' *) rewrite <- ?plus_n_Sm. rewrite IHz'.      *)
-
-(* Theorem bag_count_sum : forall (n : nat) (s1 s2 : bag), *)
-(*   count n (sum s1 s2) = (count n s1) + (count n s2).    *)
-(* Proof.                                                  *)
-(*   induction s1 as [| n' s1' IHs1'].                     *)
-(*   - [> nil <] intros. simpl. reflexivity.               *)
-(*   - [> n' :: s1' <] intros. destruct n'.                *)
-(*     + [> 0 <] destruct n.                               *)
-(*       * [> 0 <] simpl. rewrite IHs1'. reflexivity.      *)
-(*       * [> S n <] simpl. rewrite IHs1'. reflexivity.    *)
-(*     + [> S n' <] destruct n.                            *)
-(*       * [> 0 <] simpl. rewrite IHs1'. reflexivity.      *)
-(*       * [> S n <] simpl. rewrite IHs1'. reflexivity.    *)
-
-(*   intros. simpl. rewrite IHs1'.                         *)
-(*     replace (S (count n s1' + count n s2))              *)
-(*     with ((S (count n s1')) + (count n s2)).            *)
-(*     rewrite plus_n_Sm.                                  *)
-(* [>* [] <]                                               *)
+Theorem bag_count_sum : forall (n : nat) (s1 s2 : bag),
+  count n (sum s1 s2) = (count n s1) + (count n s2).
+Proof.
+  induction s1 as [| n' s1' IHs1'].
+  - (* nil *) intros. simpl. reflexivity.
+  - (* n' :: s1' *) intros. simpl. destruct (beq_nat n n').
+    + (* true *) simpl. rewrite IHs1'. reflexivity.
+    + (* false *) rewrite IHs1'. reflexivity.
+Qed.
+(** [] *)
 
 (** **** Exercise: 4 stars, advanced (rev_injective)  *)
 (** Prove that the [rev] function is injective -- that is,
@@ -981,7 +964,12 @@ Qed.
 
 (There is a hard way and an easy way to do this.) *)
 
-(* FILL IN HERE *)
+Theorem rev_injective : forall (l1 l2 : natlist),
+  rev l1 = rev l2 -> l1 = l2.
+Proof.
+  intros. rewrite <- rev_involutive. rewrite <- H. rewrite rev_involutive.
+  reflexivity.
+Qed.
 (** [] *)
 
 
@@ -1069,17 +1057,18 @@ Definition option_elim (d : nat) (o : natoption) : nat :=
 (** Using the same idea, fix the [hd] function from earlier so we don't
     have to pass a default element for the [nil] case.  *)
 
-Definition hd_error (l : natlist) : natoption
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Definition hd_error (l : natlist) : natoption :=
+  match l with
+  | nil => None
+  | a :: l' => Some a
+  end.
 
 Example test_hd_error1 : hd_error [] = None.
- (* FILL IN HERE *) Admitted.
-
+Proof. reflexivity. Qed.
 Example test_hd_error2 : hd_error [1] = Some 1.
- (* FILL IN HERE *) Admitted.
-
+Proof. reflexivity. Qed.
 Example test_hd_error3 : hd_error [5;6] = Some 5.
- (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, optional (option_elim_hd)  *)
@@ -1088,7 +1077,10 @@ Example test_hd_error3 : hd_error [5;6] = Some 5.
 Theorem option_elim_hd : forall (l:natlist) (default:nat),
   hd default l = option_elim default (hd_error l).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. destruct l as [| n l'].
+  - (* nil *) reflexivity.
+  - (* n :: l' *) simpl. reflexivity.
+Qed.
 (** [] *)
 
 End NatList.
@@ -1122,7 +1114,8 @@ Definition beq_id x1 x2 :=
 (** **** Exercise: 1 star (beq_id_refl)  *)
 Theorem beq_id_refl : forall x, true = beq_id x x.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. destruct x. simpl. rewrite <- beq_nat_refl. reflexivity.
+Qed.
 (** [] *)
 
 (** Now we define the type of partial maps: *)
@@ -1168,7 +1161,8 @@ Theorem update_eq :
   forall (d : partial_map) (k : id) (v: nat),
     find k (update d k v) = Some v.
 Proof.
- (* FILL IN HERE *) Admitted.
+  intros. simpl. rewrite <- beq_id_refl. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star (update_neq)  *)
@@ -1176,7 +1170,8 @@ Theorem update_neq :
   forall (d : partial_map) (m n : id) (o: nat),
     beq_id m n = false -> find m (update d n o) = find m d.
 Proof.
- (* FILL IN HERE *) Admitted.
+  intros. simpl. rewrite H. reflexivity.
+Qed.
 (** [] *)
 
 End PartialMap.
@@ -1191,6 +1186,7 @@ Inductive baz : Type :=
 (** How _many_ elements does the type [baz] have?  (Answer in English
     or the natural language of your choice.)
 
+    None because there is no 'base' element from which to build other elements.
 (* FILL IN HERE *)
 *)
 (** [] *)
