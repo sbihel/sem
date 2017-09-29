@@ -1187,7 +1187,6 @@ Inductive baz : Type :=
     or the natural language of your choice.)
 
     None because there is no 'base' element from which to build other elements.
-(* FILL IN HERE *)
 *)
 (** [] *)
 

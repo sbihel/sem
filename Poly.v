@@ -49,7 +49,7 @@ Inductive list (X:Type) : Type :=
     [natlist] in the types of the constructors have been replaced by
     [list X].  (We can re-use the constructor names [nil] and [cons]
     because the earlier definition of [natlist] was inside of a
-    [Module] definition that is now out of scope.) 
+    [Module] definition that is now out of scope.)
 
     What sort of thing is [list] itself?  One good way to think
     about it is that [list] is a _function_ from [Type]s to
@@ -128,14 +128,13 @@ Inductive grumble (X:Type) : Type :=
 
 (** Which of the following are well-typed elements of [grumble X] for
     some type [X]?
-      - [d (b a 5)]
-      - [d mumble (b a 5)]
-      - [d bool (b a 5)]
-      - [e bool true]
-      - [e mumble (b c 0)]
-      - [e bool (b c 0)]
-      - [c]
-(* FILL IN HERE *)
+      - [d (b a 5)]        NO (a type isn't given to d)
+      - [d mumble (b a 5)] YES
+      - [d bool (b a 5)]   NO ((b a 5) is not of type bool)
+      - [e bool true]      YES
+      - [e mumble (b c 0)] YES
+      - [e bool (b c 0)]   NO (wrong type of (b c 0))
+      - [c]                NO (not grumble)
 *)
 (** [] *)
 
@@ -814,7 +813,42 @@ Definition option_map {X Y : Type} (f : X -> Y) (xo : option X)
     done so correctly.  (This exercise is not to be turned in; it is
     probably easiest to do it on a _copy_ of this file that you can
     throw away afterwards.)  [] *)
-    (*TODO*)
+
+(* Fixpoint filter' (X:Type) (test: X->bool) (l:list X)                   *)
+(*                 : (list X) :=                                          *)
+(*   match l with                                                         *)
+(*   | []     => []                                                       *)
+(*   | h :: t => if test h then h :: (filter test t)                      *)
+(*                         else       filter test t                       *)
+(*   end.                                                                 *)
+
+(* Fixpoint map' (X Y:Type) (f:X->Y) (l:list X) : (list Y) :=             *)
+(*   match l with                                                         *)
+(*   | []     => []                                                       *)
+(*   | h :: t => (f h) :: (map f t)                                       *)
+(*   end.                                                                 *)
+
+(* Definition partition' {X : Type}                                       *)
+(*                      (test : X -> bool)                                *)
+(*                      (l : list X)                                      *)
+(*                    : list X * list X :=                                *)
+(*   (filter test l, filter' X (fun x => negb (test x)) l).               *)
+
+(* Theorem map_plus' : forall (X Y : Type) (f : X -> Y) (l1 l2 : list X), *)
+(*   map' f (l1 ++ l2) = (map' f l1) ++ (map' f l2).                      *)
+(* Proof.                                                                 *)
+(*   intros. induction l1 as [| n l1' IHl1'].                             *)
+(*   - [> nil <] simpl. reflexivity.                                      *)
+(*   - (* n :: l1' *) simpl. rewrite IHl1'. reflexivity.                  *)
+(* Qed.                                                                   *)
+
+(* Theorem map_rev' : forall (X Y : Type) (f : X -> Y) (l : list X),      *)
+(*   map' X Y f (rev l) = rev (map' X Y f l).                             *)
+(* Proof.                                                                 *)
+(*   intros. induction l as [| n l' IHn'].                                *)
+(*   - [> nil <] reflexivity.                                             *)
+(*   - [> n :: l' <] simpl. rewrite map_plus'. rewrite IHn'. reflexivity. *)
+(* Qed.                                                                   *)
 
 (* ================================================================= *)
 (** ** Fold *)
@@ -1032,7 +1066,18 @@ Qed.
 
    forall X n l, length l = n -> @nth_error X l n = None
 
-(* FILL IN HERE *)
+    _Proof_: By induction on l.
+
+    When l is nil we directly have None.
+
+    When l = a :: l', we have n = length l > 0, so the result is
+      nth_error l' (pred n).
+    Because length l' = n - 1 = pred n, we can apply the induction hypothesis
+    and conclude that nth_error l' (pred n) returns None.
+
+    When trying this with coq, we are mixing n for the original proof and the n
+    in the proof of l' so it is not working with the tools that we have seen
+    until now.
 *)
 (** [] *)
 
@@ -1126,7 +1171,9 @@ Proof. reflexivity. Qed.
     type: [nat] itself is usually problematic.) *)
 
 Definition exp (n m : nat) : nat :=
-  fun (X : Type) (f : X -> X) (x : X) => (mult m n) X f x.
+  fun (X : Type) (f : X -> X) (x : X) =>
+       (m (X->X) (fun y => (fun z => (n X y z))) f) x.
+  (* fun X => m (X -> X) (n X). *)
 
 Example exp_1 : exp two two = plus two two.
 Proof. reflexivity. Qed.
