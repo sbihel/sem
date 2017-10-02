@@ -127,7 +127,9 @@ Qed.
     [rewrite].  What are the situations where both can usefully be
     applied?
 
-(* FILL IN HERE *)
+Rewrite simply rewrites, thus making it useful to set up the goal in a certain
+manner that will allow us to apply lemmas so move the proof forward.
+Apply generate subgoals from the current goal, moving the proof forward.
 *)
 (** [] *)
 
@@ -186,7 +188,7 @@ Example trans_eq_exercise : forall (n m o p : nat),
      (n + p) = m ->
      (n + p) = (minustwo o).
 Proof.
-  intros. apply trans_eq with (m:=m). apply H0. apply H.
+  intros. apply trans_eq with (m). apply H0. apply H.
 Qed.
 (** [] *)
 
@@ -420,8 +422,15 @@ Theorem plus_n_n_injective : forall n m,
      n = m.
 Proof.
   intros n. induction n as [| n'].
-  - (* 0 *) intros. inversion H. rewrite H1.
-  - (* S n' *)
+  - (* 0 *) intros. destruct m.
+    + (* 0 *) reflexivity.
+    + (* S m *) inversion H.
+  - (* S n' *) intros. destruct m.
+    + (* 0 *) inversion H.
+    + (* S m *) rewrite <- ?plus_n_Sm in H. (* TODO comment *)
+      inversion H. apply IHn' in H1.
+      inversion H1. reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -578,7 +587,14 @@ Proof.
 Theorem beq_nat_true : forall n m,
     beq_nat n m = true -> n = m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction n as [| n' IHn'].
+  - (* 0 *) intros. destruct m.
+    + (* 0 *) reflexivity.
+    + (* S m *) inversion H.
+  - (* S n *) intros. destruct m.
+    + (* 0 *) inversion H.
+    + (* S m *) apply S_inj in H. apply IHn' in H. rewrite H. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, advanced (beq_nat_true_informal)  *)
@@ -703,7 +719,13 @@ Theorem nth_error_after_last: forall (n : nat) (X : Type) (l : list X),
      length l = n ->
      nth_error l n = None.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. generalize dependent n. generalize dependent l.
+  induction l as [| x l' IHl'].
+  - (* nil *) reflexivity.
+  - (* x :: l' *) intros. destruct n.
+    + (* O *) inversion H.
+    + (* S n *) inversion H. simpl. apply IHl'. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (app_length_cons)  *)
@@ -715,7 +737,14 @@ Theorem app_length_cons : forall (X : Type) (l1 l2 : list X)
      length (l1 ++ (x :: l2)) = n ->
      S (length (l1 ++ l2)) = n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. generalize dependent n. generalize dependent l1.
+  induction l1 as [| x' l1' IHl1'].
+  - (* nil *) intros. rewrite <- H. simpl. reflexivity.
+  - (* x' :: l1' *) intros. destruct n.
+    + (* O *) inversion H.
+    + (* S n *) inversion H. apply IHl1' in H1. simpl. rewrite H1. inversion H.
+    reflexivity. (* TODO clean *)
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, optional (app_length_twice)  *)
