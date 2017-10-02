@@ -78,7 +78,8 @@ Theorem silly_ex :
      evenb 3 = true ->
      oddb 4 = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. apply H. apply H0.
+Qed.
 (** [] *)
 
 (** To use the [apply] tactic, the (conclusion of the) fact
@@ -117,7 +118,8 @@ Theorem rev_exercise1 : forall (l l' : list nat),
      l = rev l' ->
      l' = rev l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. symmetry. rewrite H. apply rev_involutive.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, optional (apply_rewrite)  *)
@@ -184,7 +186,8 @@ Example trans_eq_exercise : forall (n m o p : nat),
      (n + p) = m ->
      (n + p) = (minustwo o).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. apply trans_eq with (m:=m). apply H0. apply H.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -259,7 +262,8 @@ Example inversion_ex3 : forall (X : Type) (x y z : X) (l j : list X),
   y :: l = x :: j ->
   x = y.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. inversion H. inversion H0. symmetry. apply H2.
+Qed.
 (** [] *)
 
 (** While the injectivity of constructors allows us to reason
@@ -333,7 +337,8 @@ Example inversion_ex6 : forall (X : Type)
   y :: l = z :: j ->
   x = z.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. inversion H.
+Qed.
 (** [] *)
 
 (** To summarize this discussion, suppose [H] is a hypothesis in the
@@ -415,7 +420,8 @@ Theorem plus_n_n_injective : forall n m,
      n = m.
 Proof.
   intros n. induction n as [| n'].
-    (* FILL IN HERE *) Admitted.
+  - (* 0 *) intros. inversion H. rewrite H1.
+  - (* S n' *)
 (** [] *)
 
 (* ################################################################# *)
