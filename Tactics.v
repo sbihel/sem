@@ -761,8 +761,12 @@ Proof.
     + (* O *) inversion H.
     + (* S n *) inversion H. inversion H1. (* keep H1 *)
       apply IHl' in H0.
-      simpl. rewrite <- plus_n_Sm. rewrite H1. rewrite <- H0.
-      rewrite app_length_cons with (x:=x) (n:=(n + S n)).
+      simpl. rewrite <- plus_n_Sm. rewrite H1.
+      rewrite <- H0.
+      rewrite app_length_cons with (x:=x) (l1:=l') (l2:=l')
+        (n:=(length (l' ++ x :: l'))).
+      reflexivity. reflexivity. (* TODO clean *)
+Qed.
 
 (** [] *)
 
@@ -776,7 +780,14 @@ Theorem double_induction: forall (P : nat -> nat -> Prop),
   (forall m n, P m n -> P (S m) (S n)) ->
   forall m n, P m n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. generalize dependent m. induction n as [| n' IHn'].
+  - (* n = 0 *) induction m as [| m' IHm'].
+    + (* m = 0 *) apply H.
+    + (* m = S m' *) apply H0. apply IHm'.
+  - (* n = S n' *) induction m as [| m' IHm'].
+    + (* m = 0 *) apply H1. apply IHn'.
+    + (* m = S m' *) apply H2. apply IHn'.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -943,7 +954,14 @@ Theorem combine_split : forall X Y (l : list (X * Y)) l1 l2,
   split l = (l1, l2) ->
   combine l1 l2 = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. (*unfold split in H.*)
+  generalize dependent l1. generalize dependent l2.
+  induction l as [| (x, y) l'].
+  - (* l = O *) intros. inversion H. reflexivity.
+  - (* l = (x, y) :: l' *) intros. inversion H.
+    destruct (split l') as [l'1 l'2]. inversion H1. simpl. rewrite IHl'.
+    reflexivity. reflexivity. (* TODO clean *)
+Qed.
 (** [] *)
 
 (** However, [destruct]ing compound expressions requires a bit of
@@ -1014,7 +1032,18 @@ Theorem bool_fn_applied_thrice :
   forall (f : bool -> bool) (b : bool),
   f (f (f b)) = f b.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. destruct b.
+  - (* b = true *) destruct (f true) eqn:Hfteq.
+    + (* f true = true *) rewrite 2?Hfteq. reflexivity.
+    + (* f true = false *) destruct (f false) eqn:Hffeq.
+      * (* f false = true *) apply Hfteq.
+      * (* f false = false *) apply Hffeq.
+  - (* b = false *) destruct (f false) eqn:Hffeq.
+    + (* f false = true *) destruct (f true) eqn:Hfteq.
+      * (* f true = true *) apply Hfteq.
+      * (* f true = false *) apply Hffeq.
+    + (* f false = false *) rewrite 2?Hffeq. reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
