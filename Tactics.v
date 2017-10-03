@@ -754,7 +754,16 @@ Theorem app_length_twice : forall (X:Type) (n:nat) (l:list X),
      length l = n ->
      length (l ++ l) = n + n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. generalize dependent n. generalize dependent l.
+  induction l as [| x l' IHl'].
+  - (* nil *) intros. inversion H. reflexivity.
+  - (* x :: l' *) intros. destruct n.
+    + (* O *) inversion H.
+    + (* S n *) inversion H. inversion H1. (* keep H1 *)
+      apply IHl' in H0.
+      simpl. rewrite <- plus_n_Sm. rewrite H1. rewrite <- H0.
+      rewrite app_length_cons with (x:=x) (n:=(n + S n)).
+
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (double_induction)  *)
