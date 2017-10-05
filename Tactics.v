@@ -427,7 +427,8 @@ Proof.
     + (* S m *) inversion H.
   - (* S n' *) intros. destruct m.
     + (* 0 *) inversion H.
-    + (* S m *) rewrite <- ?plus_n_Sm in H. (* TODO comment *)
+    + (* S m *) rewrite <- ?plus_n_Sm in H.
+      (* Rewrite in [S x = S y] form to be able to remove the [S]. *)
       inversion H. apply IHn' in H1.
       inversion H1. reflexivity.
 Qed.
@@ -763,8 +764,9 @@ Proof.
   - (* nil *) intros. rewrite <- H. simpl. reflexivity.
   - (* x' :: l1' *) intros. destruct n.
     + (* O *) inversion H.
-    + (* S n *) inversion H. apply IHl1' in H1. simpl. rewrite H1. inversion H.
-    reflexivity. (* TODO clean *)
+    + (* S n *) inversion H. apply IHl1' in H1.
+    simpl. rewrite H1. inversion H.
+    reflexivity.
 Qed.
 (** [] *)
 
@@ -786,7 +788,7 @@ Proof.
       rewrite <- H0.
       rewrite app_length_cons with (x:=x) (l1:=l') (l2:=l')
         (n:=(length (l' ++ x :: l'))).
-      reflexivity. reflexivity. (* TODO clean *)
+      reflexivity. reflexivity.
 Qed.
 
 (** [] *)
@@ -975,13 +977,14 @@ Theorem combine_split : forall X Y (l : list (X * Y)) l1 l2,
   split l = (l1, l2) ->
   combine l1 l2 = l.
 Proof.
-  intros. (*unfold split in H.*)
+  intros.
   generalize dependent l1. generalize dependent l2.
   induction l as [| (x, y) l'].
   - (* l = O *) intros. inversion H. reflexivity.
   - (* l = (x, y) :: l' *) intros. inversion H.
-    destruct (split l') as [l'1 l'2]. inversion H1. simpl. rewrite IHl'.
-    reflexivity. reflexivity. (* TODO clean *)
+    destruct (split l') as [l'1 l'2]. (* Remove the single case match. *)
+    inversion H1. simpl. rewrite IHl'.
+    reflexivity. reflexivity.
 Qed.
 (** [] *)
 
@@ -1154,7 +1157,19 @@ Qed.
    Theorem: For any [nat]s [n] [m], [beq_nat n m = beq_nat m n].
 
    Proof:
-   (* FILL IN HERE *)
+    We do an induction on n  while keeping m not set to a particular value.
+    - n = 0. We set m and seperate two cases for its value.
+      + m = 0. The result is immediate.
+      + m = S m' with m' a natural. Both sides are false.
+    - n = S n' with n' a natural. The induction hypothesis is that
+        for all x, beq_nat n' x = beq_nat x n'.
+      Again we set m and differentiate two cases.
+      + m = 0 and thus both sides are false.
+      + m = S m' with m' a natural. We can simplify
+          beq_nat (S n') (S m') = beq_nat (S m') (S n')
+        by
+          beq_nat n' m' = beq_nat m' n'.
+        Now we can use the induction hypothesis.
 []
 *)
 
@@ -1326,11 +1341,13 @@ Proof.
   intros. induction l as [| n l' IHl'].
   - (* l = [] *) reflexivity.
   - (* l = n :: l' *) destruct (test n) eqn:Htn.
-    + (* test n = true *) simpl. unfold existsb'. unfold forallb. rewrite Htn.
+    + (* test n = true *) simpl. unfold existsb'. unfold forallb.
+      rewrite Htn.
       simpl. reflexivity.
-    + (* test n = false *) simpl. rewrite Htn. simpl. rewrite <- IHl'.
-      unfold existsb'. unfold forallb. rewrite Htn. reflexivity.
-Qed. (* TODO clean *)
+    + (* test n = false *) simpl. rewrite Htn. rewrite <- IHl'.
+      unfold existsb'. unfold forallb. rewrite Htn.
+      reflexivity.
+Qed.
 (** [] *)
 
 (** $Date: 2016-07-14 23:02:35 +0200 (Jeu, 14 jul 2016) $ *)
