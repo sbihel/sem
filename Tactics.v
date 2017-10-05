@@ -601,7 +601,28 @@ Qed.
 (** Give a careful informal proof of [beq_nat_true], being as explicit
     as possible about quantifiers. *)
 
-(* FILL IN HERE *)
+(**
+    We want to show that for all naturals n and m,
+      beq_nat n m = true implies that n = m.
+
+    We do an induction on n, keeping m unset.
+
+    - When n = 0, we can introduce m, and we have two cases on the value of m.
+      + if m = 0, then it is immediate that n = m
+      + if m = S m', then our hypothesis that beq_nat n m is true, does not
+        hold.
+    - When n = S n',
+      This time we have the induction hypothesis that states that
+        for all m', beq_nat n' m' implies that n' = m'.
+      We introduce m and do a similar destruct on it's value.
+      + if m = 0, then our hypothesis that beq_nat n m is true, does not hold.
+      + if m = S m'. We have our hypothesis that can be written as
+          beq_nat (S n') (S m').
+        With a previous lemma, we can re-write it as
+          beq_nat n' m'.
+        And with our induction hypothesis, it means that n' = m'.
+        Now we can apply this to our goal S n' = S m'.
+*)
 (** [] *)
 
 (** The strategy of doing fewer [intros] before an [induction] to
