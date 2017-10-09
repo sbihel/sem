@@ -1171,9 +1171,10 @@ Proof. reflexivity. Qed.
     type: [nat] itself is usually problematic.) *)
 
 Definition exp (n m : nat) : nat :=
-  fun (X : Type) (f : X -> X) (x : X) =>
-       (m (X->X) (fun y => (fun z => (n X y z))) f) x.
-  (* fun X => m (X -> X) (n X). *)
+  fun X => m (X -> X) (n X).
+(** The definition I find the most natural would be something like
+  * [m some_type (fun x => mult n x) one] but it is more complex to handle
+  * types. *)
 
 Example exp_1 : exp two two = plus two two.
 Proof. reflexivity. Qed.
