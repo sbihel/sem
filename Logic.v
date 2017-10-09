@@ -476,7 +476,8 @@ Qed.
 Theorem not_both_true_and_false : forall P : Prop,
   ~ (P /\ ~P).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P. unfold not. intros [HP HPi]. apply HPi. apply HP.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, advanced (informal_not_PNP)  *)
@@ -581,19 +582,40 @@ Qed.
 Theorem iff_refl : forall P : Prop,
   P <-> P.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P. split.
+  - (* -> *) intros HP. apply HP.
+  - (* <- *) intros HP. apply HP.
+Qed.
 
 Theorem iff_trans : forall P Q R : Prop,
   (P <-> Q) -> (Q <-> R) -> (P <-> R).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P Q R. intros HPQ HQR. split.
+  - (* P -> R *) intros HP. apply HQR. apply HPQ. apply HP.
+  - (* R -> P *) intros HR. apply HPQ. apply HQR. apply HR.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (or_distributes_over_and)  *)
 Theorem or_distributes_over_and : forall P Q R : Prop,
   P \/ (Q /\ R) <-> (P \/ Q) /\ (P \/ R).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P Q R. split.
+  - (* -> *) intros [HP | HQR].
+    + (* HP *) split.
+      * left. apply HP.
+      * left. apply HP.
+    + (* HQR *) split.
+      * right. apply HQR.
+      * right. apply HQR.
+  - (* <- *) intros [[HP | HQ] [HP' | HR]].
+    + (* HP HP' *) left. apply HP.
+    + (* HP HR *) left. apply HP.
+    + (* HQ HP' *) left. apply HP'.
+    + (* HQ HR *) right. split.
+      * (* Q *) apply HQ.
+      * (* R *) apply HR.
+Qed.
 (** [] *)
 
 (** Some of Coq's tactics treat [iff] statements specially, avoiding
@@ -692,7 +714,9 @@ Proof.
 Theorem dist_not_exists : forall (X:Type) (P : X -> Prop),
   (forall x, P x) -> ~ (exists x, ~ P x).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. unfold not. intros HF.
+  inversion HF. apply H0. apply H.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars (dist_exists_or)  *)
@@ -702,7 +726,14 @@ Proof.
 Theorem dist_exists_or : forall (X:Type) (P Q : X -> Prop),
   (exists x, P x \/ Q x) <-> (exists x, P x) \/ (exists x, Q x).
 Proof.
-   (* FILL IN HERE *) Admitted.
+  intros. split.
+  - intros H. inversion H. destruct H0.
+    + (* P x *) left. exists x. apply H0.
+    + (* Q x *) right. exists x. apply H0.
+  - intros [].
+    + (* P x *) intros H. inversion H. exists x. left. apply H0.
+    + (* Q x *) intros H. inversion H. exists x. right. apply H0.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -785,7 +816,15 @@ Lemma In_map_iff :
     In y (map f l) <->
     exists x, f x = y /\ In x l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. split.
+  - (* -> *) induction l as [| x' l' IHl'].
+    + (* l = nil *) simpl. apply ex_falso_quodlibet.
+    + (* l = x' :: l' *) simpl. intros H. exists x'. split.
+      * (* *) destruct H.
+        -- (* *) apply H.
+        -- (* *) destruct IHl'.
+          ++ (* *) apply H.
+          ++ (* *) inversion H0.
 (** [] *)
 
 (** **** Exercise: 2 stars (in_app_iff)  *)
