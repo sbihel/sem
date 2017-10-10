@@ -819,19 +819,32 @@ Proof.
   intros. split.
   - (* -> *) induction l as [| x' l' IHl'].
     + (* l = nil *) simpl. apply ex_falso_quodlibet.
-    + (* l = x' :: l' *) simpl. intros H. exists x'. split.
-      * (* *) destruct H.
+    + (* l = x' :: l' *) simpl. intros [H | H].
+      * (* *) exists x'. split.
         -- (* *) apply H.
-        -- (* *) destruct IHl'.
-          ++ (* *) apply H.
-          ++ (* *) inversion H0.
+        -- (* *) left. reflexivity.
+      * (* *) apply IHl' in H. inversion H. exists x. split.
+        -- (* *) apply H0.
+        -- (* *) right. apply H0.
+  - (* *) induction l as [| x' l' IHl'].
+    + (* l = nil *) simpl. intros H. destruct H. inversion H. inversion H1.
+    + (* l = x' :: l' *) simpl. intros H. destruct H.
+      destruct H as [H1 H2]. destruct H2.
+      * (* x = x' *) left. rewrite H. apply H1.
+      * (* In x l' *) right. apply IHl'. exists x. split.
+        -- (* *) apply H1.
+        -- (* *) apply H.
+Qed. (* Fells like I've done low-level proof and missed the point of previous
+  instructions *)
 (** [] *)
 
 (** **** Exercise: 2 stars (in_app_iff)  *)
 Lemma in_app_iff : forall A l l' (a:A),
   In a (l++l') <-> In a l \/ In a l'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. split.
+  - (* -> *) unfold In.
+  - (* <- *)
 (** [] *)
 
 (** **** Exercise: 3 stars (All)  *)
