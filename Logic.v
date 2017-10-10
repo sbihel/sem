@@ -839,12 +839,27 @@ Qed. (* Fells like I've done low-level proof and missed the point of previous
 (** [] *)
 
 (** **** Exercise: 2 stars (in_app_iff)  *)
-Lemma in_app_iff : forall A l l' (a:A),
+Lemma In_app_iff : forall A l l' (a:A),
   In a (l++l') <-> In a l \/ In a l'.
 Proof.
   intros. split.
-  - (* -> *) unfold In.
-  - (* <- *)
+  - (* -> *) induction l as [| x1 l1 IHl1].
+    + (* l = nil *) intros H. right. apply H.
+    + (* l = x1 :: l1 *) intros H. inversion H.
+      * (* x1 = a *) unfold In. left. left. apply H0.
+      * (* *) apply IHl1 in H0. destruct H0.
+        -- (* *) left. unfold In. right. apply H0.
+        -- (* *) right. apply H0.
+  - (* <- *) induction l as [| x1 l1 IHl1].
+    + (* l = nil *) intros [Hnil | Hl'].
+      * (* *) inversion Hnil.
+      * (* *) apply Hl'.
+    + (* l = x1 :: l1 *) intros [Hl1 | Hl'].
+      * (* *) inversion Hl1.
+        -- (* x1 = a *) simpl. left. apply H.
+        -- (* *) simpl. right. apply IHl1. left. apply H.
+      * (* *) simpl. right. apply IHl1. right. apply Hl'.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (All)  *)
@@ -858,15 +873,30 @@ Proof.
     lemma below.  (Of course, your definition should _not_ just
     restate the left-hand side of [All_In].) *)
 
-Fixpoint All {T} (P : T -> Prop) (l : list T) : Prop 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Fixpoint All {T} (P : T -> Prop) (l : list T) : Prop :=
+  match l with
+  | [] => True
+  | x :: l' => P x /\ All P l'
+  end.
 
 Lemma All_In :
   forall T (P : T -> Prop) (l : list T),
     (forall x, In x l -> P x) <->
     All P l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. split.
+  - (* -> *) induction l as [| x' l' IHl'].
+    + (* l = nil *) simpl. intros H. apply I.
+    + (* l = x' :: l' *) simpl. intros H. split.
+      * (* P x' *) apply H. left. reflexivity.
+      * (* All P l' *) apply IHl'. intros x HIn. apply H. right. apply HIn.
+  - (* <- *) induction l as [| x' l' IHl'].
+    + (* l = nil *) simpl. intros HT x HF. inversion HF.
+    + (* l = x' :: l' *) simpl. intros [HPx' HAPl'] x. intros [Hxeq | HIn].
+      * (* x' = x *) rewrite <- Hxeq. apply HPx'.
+      * (* In x l' *) apply IHl'. apply HAPl'. apply HIn.
+(* Proofs work a lot with goals instead of just hypothesis. *)
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (combine_odd_even)  *)
@@ -876,8 +906,8 @@ Proof.
     equivalent to [Podd n] when [n] is odd and equivalent to [Peven n]
     otherwise. *)
 
-Definition combine_odd_even (Podd Peven : nat -> Prop) : nat -> Prop 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Definition combine_odd_even (Podd Peven : nat -> Prop) : nat -> Prop :=
+  fun n => if (oddb n) then Podd n else Peven n.
 
 (** To test your definition, prove the following facts: *)
 
@@ -887,7 +917,11 @@ Theorem combine_odd_even_intro :
     (oddb n = false -> Peven n) ->
     combine_odd_even Podd Peven n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros Podd Peven n H1 H2. unfold combine_odd_even.
+  destruct (oddb n).
+  - (* odd *) apply H1. reflexivity.
+  - (* even *) apply H2. reflexivity.
+Qed.
 
 Theorem combine_odd_even_elim_odd :
   forall (Podd Peven : nat -> Prop) (n : nat),
@@ -895,7 +929,11 @@ Theorem combine_odd_even_elim_odd :
     oddb n = true ->
     Podd n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros Podd Peven n. unfold combine_odd_even.
+  destruct (oddb n).
+  - (* odd *) intros H1 H2. apply H1.
+  - (* even *) intros H1 H2. inversion H2.
+Qed.
 
 Theorem combine_odd_even_elim_even :
   forall (Podd Peven : nat -> Prop) (n : nat),
@@ -903,7 +941,11 @@ Theorem combine_odd_even_elim_even :
     oddb n = false ->
     Peven n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros Podd Peven n. unfold combine_odd_even.
+  destruct (oddb n).
+  - (* odd *) intros H1 H2. inversion H2.
+  - (* even *) intros H1 H2. apply H1.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -1126,9 +1168,34 @@ Definition tr_rev {X} (l : list X) : list X :=
     call); a decent compiler will generate very efficient code in this
     case.  Prove that both definitions are indeed equivalent. *)
 
+Lemma rev_append_x :
+  forall X (l : list X) (x : X), rev_append l [x] = (rev_append l [ ]) ++ [x].
+Proof.
+  intros X l. induction l as [| x' l' IHl'].
+  - (* l = nil *) intros x. reflexivity.
+  - (* l = x' :: l' *) intros x. simpl. rewrite IHl'. Admitted.
+
+(*
+Lemma tr_rev_involutive :
+  forall X (l : list X), tr_rev (tr_rev l) = l.
+Proof.
+  intros. induction l as [| x l' IHl'].
+  - (* l = nil *) reflexivity.
+  - (* l = x :: l' *) unfold tr_rev in IHl'. unfold tr_rev. simpl.
+    replace (x :: l') with (x :: (rev_append (rev_append l' [ ]) [ ])).
+    reflexivity.
+*)
 
 Lemma tr_rev_correct : forall X, @tr_rev X = @rev X.
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros. apply functional_extensionality. intros l.
+  induction l as [|x l' IHl'].
+  - (* l = nil *) reflexivity.
+  - (* l = x :: l' *) simpl. rewrite <- IHl'. unfold tr_rev. simpl.
+    apply rev_append_x.
+Qed.
+
+
 (** [] *)
 
 (* ================================================================= *)
