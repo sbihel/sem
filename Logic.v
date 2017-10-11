@@ -1168,23 +1168,16 @@ Definition tr_rev {X} (l : list X) : list X :=
     call); a decent compiler will generate very efficient code in this
     case.  Prove that both definitions are indeed equivalent. *)
 
-Lemma rev_append_x :
-  forall X (l : list X) (x : X), rev_append l [x] = (rev_append l [ ]) ++ [x].
+Lemma rev_append_x : forall X (l1 l2 : list X),
+  rev_append l1 l2 = (rev_append l1 [ ]) ++ l2.
 Proof.
-  intros X l. induction l as [| x' l' IHl'].
-  - (* l = nil *) intros x. reflexivity.
-  - (* l = x' :: l' *) intros x. simpl. rewrite IHl'. Admitted.
-
-(*
-Lemma tr_rev_involutive :
-  forall X (l : list X), tr_rev (tr_rev l) = l.
-Proof.
-  intros. induction l as [| x l' IHl'].
-  - (* l = nil *) reflexivity.
-  - (* l = x :: l' *) unfold tr_rev in IHl'. unfold tr_rev. simpl.
-    replace (x :: l') with (x :: (rev_append (rev_append l' [ ]) [ ])).
-    reflexivity.
-*)
+  induction l1 as [| x l1' IHl1'].
+  - (* l1 = nil *) intros. reflexivity.
+  - (* l1 = x :: l1' *) intros l2. simpl. rewrite IHl1'.
+    replace (rev_append l1' [x]) with (rev_append l1' [] ++ [x]).
+    rewrite <- app_assoc. reflexivity.
+    { rewrite <- IHl1'. reflexivity. }
+Qed.
 
 Lemma tr_rev_correct : forall X, @tr_rev X = @rev X.
 Proof.
@@ -1226,7 +1219,18 @@ Theorem evenb_double_conv : forall n,
                 else S (double k).
 Proof.
   (* Hint: Use the [evenb_S] lemma from [Induction.v]. *)
-  (* FILL IN HERE *) Admitted.
+  induction n as [| n' IHn'].
+  - (* n = 0 *) exists 0. reflexivity.
+  - (* n = S n' *) rewrite evenb_S. destruct (evenb n').
+    + (* even *) simpl. destruct IHn' as [x H].
+      rewrite H. exists x. reflexivity.
+    + (* odd *) simpl. destruct IHn' as [x H].
+      rewrite H. exists (x + 1).
+      rewrite 2?double_plus. rewrite <- plus_1_l. rewrite plus_comm.
+      rewrite <- plus_Sn_m. rewrite <- plus_1_l. rewrite <- plus_assoc.
+      rewrite plus_comm. rewrite <- (plus_comm x). reflexivity.
+(* All those rewritings could possibly be simpler *)
+Qed.
 (** [] *)
 
 Theorem even_bool_prop : forall n,
@@ -1339,12 +1343,32 @@ Proof. apply even_bool_prop. reflexivity. Qed.
 Lemma andb_true_iff : forall b1 b2:bool,
   b1 && b2 = true <-> b1 = true /\ b2 = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+ intros b1 b2. split.
+ - (* -> *) intros H. destruct b1.
+  + (* b1 = true *) split.
+    * (* true = true*) reflexivity.
+    * (* b2 = true *) destruct b2.
+      -- (* true *) reflexivity.
+      -- (* false *) inversion H.
+  + (* b1 = false *) inversion H.
+ - (* <- *) intros [H1 H2]. rewrite H1. rewrite H2. reflexivity.
+Qed.
 
 Lemma orb_true_iff : forall b1 b2,
   b1 || b2 = true <-> b1 = true \/ b2 = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros b1 b2. split.
+  - (* -> *) intros H. destruct b1.
+    + (* b1 = true *) left. reflexivity.
+    + (* b1 = false *) right. destruct b2.
+      * (* b2 = true *) reflexivity.
+      * (* b2 = false *) inversion H.
+  - (* <- *) intros [H1 | H2].
+    + (* b1 = true *) rewrite H1. reflexivity.
+    + (* b2 = true *) rewrite H2. destruct b1.
+      * (* b1 = true *) reflexivity.
+      * (* b1 = false *) reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star (beq_nat_false_iff)  *)
@@ -1355,7 +1379,13 @@ Proof.
 Theorem beq_nat_false_iff : forall x y : nat,
   beq_nat x y = false <-> x <> y.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros x y. rewrite <- not_true_iff_false.
+  split.
+  - (* -> *) apply contrapositive. intros H. rewrite H.
+    rewrite <- beq_nat_refl. reflexivity.
+  - (* <- *) apply contrapositive. intros H.
+    apply beq_nat_true in H. apply H.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (beq_list)  *)
@@ -1366,15 +1396,35 @@ Proof.
     definition is correct, prove the lemma [beq_list_true_iff]. *)
 
 Fixpoint beq_list {A} (beq : A -> A -> bool)
-                  (l1 l2 : list A) : bool 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+                  (l1 l2 : list A) : bool :=
+  match l1 with
+  | [] => match l2 with
+          | [] => true
+          | _ => false
+          end
+  | x1 :: l1' => match l2 with
+                 | [] => false
+                 | x2 :: l2' => (beq x1 x2) && (beq_list beq l1' l2')
+                 end
+  end.
 
 Lemma beq_list_true_iff :
   forall A (beq : A -> A -> bool),
     (forall a1 a2, beq a1 a2 = true <-> a1 = a2) ->
     forall l1 l2, beq_list beq l1 l2 = true <-> l1 = l2.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros. split.
+  - (* -> *) generalize dependent l2. induction l1 as [| x1 l1' IHl1'].
+    + (* l1 = nil *) intros l2 H0. destruct l2 as [| x2 l2'].
+      * (* l2 = nil *) reflexivity.
+      * (* l2 = x2 :: l2' *) inversion H0.
+    + (* l1 = x1 :: l1' *) intros l2 H0. destruct l2 as [| x2 l2'].
+      * (* l2 = nil *) inversion H0.
+      * (* l2 = x2 :: l2' *) inversion H0. destruct (beq x1 x2) eqn:Hbeq.
+        -- (* x1 = x2 *) inversion H2. apply IHl1' in H3. apply H in Hbeq.
+          rewrite Hbeq. rewrite H3. reflexivity.
+        -- (* x1 != x2 *) inversion H2.
+  - (* <- *) intros Heq. rewrite Heq. unfold beq_list. Admitted.
 (** [] *)
 
 (** **** Exercise: 2 stars, recommended (All_forallb)  *)
