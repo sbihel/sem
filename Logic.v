@@ -459,7 +459,12 @@ Proof.
    _Theorem_: [P] implies [~~P], for any proposition [P].
 
    _Proof_:
-(* FILL IN HERE *)
+    If we unfold the definition of "~" (not), we now want to show that
+    P implies (P -> False) -> False.
+
+    Now we have a new hypothesis with (P -> False). We are left with False so we
+    can apply this new hypothesis and proove that P is True. As this was the
+    first hypothesis, we are done.
    []
 *)
 
@@ -484,8 +489,17 @@ Qed.
 (** Write an informal proof (in English) of the proposition [forall P
     : Prop, ~(P /\ ~P)]. *)
 
-(* FILL IN HERE *)
-(** [] *)
+
+(**
+   _Therorem_: for any proposition [P], [~(P /\ ~P)] is True.
+
+   _Proof_:
+    We unfold not and we now have [P /\ (P -> False) -> False].
+    We can extract two hypothesis from the 'and': [P] and [P -> False].
+    As our goal is now False, we can apply [P -> False] and have to proove [P].
+    But this is also part of our hypothesis so the proof is complete.
+   []
+*)
 
 (** Similarly, since inequality involves a negation, it requires a
     little practice to be able to work with it fluently.  Here is one
@@ -1475,7 +1489,7 @@ Qed.
 (** Are there any important properties of the function [forallb] which
     are not captured by your specification? *)
 
-(* FILL IN HERE *)
+(* TODO, don't know (for now) *)
 (** [] *)
 
 (* ================================================================= *)
@@ -1614,8 +1628,13 @@ Theorem not_exists_dist :
     ~ (exists x, ~ P x) -> (forall x, P x).
 Proof.
   intros Hexcl X P H x. unfold not in H. unfold excluded_middle in Hexcl.
-  apply ex_falso_quodlibet. apply H. exists x. intros HP.
-  unfold not in Hexcl. apply H. exists x. Admitted.
+  assert ( P x \/ ~ P x) as HexclPx.
+  - (* P x \/ ~ P x *) apply Hexcl.
+  - (* P x *) inversion HexclPx.
+    + (* P x *) apply H0.
+    + (* ~ P x *) apply ex_falso_quodlibet. apply H. exists x.
+      unfold not in H0. apply H0.
+(* Proofs are ugly and show that I don't really know what I'm doing *)
 Qed.
 (** [] *)
 
@@ -1642,7 +1661,22 @@ Definition de_morgan_not_and_not := forall P Q:Prop,
 Definition implies_to_or := forall P Q:Prop,
   (P->Q) -> (~P\/Q).
 
-(* FILL IN HERE *)
+Theorem excl_is_dneg :
+  excluded_middle <-> double_negation_elimination.
+Proof.
+  unfold excluded_middle. unfold double_negation_elimination. split.
+  - (* -> *) unfold not. intros Hexcl P. intros H.
+    exfalso. apply H. intros HP. Admitted.
+  (*- (* <- *)*)
+
+Theorem classical_axioms :
+  excluded_middle
+  <-> peirce
+  <-> double_negation_elimination
+  <-> de_morgan_not_and_not
+  <-> implies_to_or.
+Proof.
+  Admitted.
 (** [] *)
 
 (** $Date: 2015-08-11 12:03:04 -0400 (Tue, 11 Aug 2015) $ *)
