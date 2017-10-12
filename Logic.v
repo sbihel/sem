@@ -1408,6 +1408,16 @@ Fixpoint beq_list {A} (beq : A -> A -> bool)
                  end
   end.
 
+Lemma beq_list_refl :
+  forall A (beq : A -> A -> bool),
+    (forall x, beq x x = true) ->
+    forall l, beq_list beq l l = true.
+Proof.
+  intros. induction l as [| x l' IHl'].
+  - (* l = nil *) reflexivity.
+  - (* l = x :: l' *) simpl. rewrite IHl'. rewrite H. reflexivity.
+Qed.
+
 Lemma beq_list_true_iff :
   forall A (beq : A -> A -> bool),
     (forall a1 a2, beq a1 a2 = true <-> a1 = a2) ->
@@ -1424,7 +1434,10 @@ Proof.
         -- (* x1 = x2 *) inversion H2. apply IHl1' in H3. apply H in Hbeq.
           rewrite Hbeq. rewrite H3. reflexivity.
         -- (* x1 != x2 *) inversion H2.
-  - (* <- *) intros Heq. rewrite Heq. unfold beq_list. Admitted.
+  - (* <- *) intros Heq. rewrite Heq. apply beq_list_refl.
+    intros x. apply H. reflexivity.
+Qed. (* TODO clean *)
+(* More intermediate lemmas would make the proof easier to read... *)
 (** [] *)
 
 (** **** Exercise: 2 stars, recommended (All_forallb)  *)
@@ -1443,7 +1456,21 @@ Fixpoint forallb {X : Type} (test : X -> bool) (l : list X) : bool :=
 Theorem forallb_true_iff : forall X test (l : list X),
    forallb test l = true <-> All (fun x => test x = true) l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. split.
+  - (* -> *) induction l as [| x l' IHl'].
+    + (* l = nil *) simpl. reflexivity.
+    + (* l = x :: l' *) destruct (test x) eqn:Htest.
+      * (* text x = true *) simpl. rewrite Htest.
+        intros H. inversion H. split.
+        -- (* left *) reflexivity.
+        -- (* right *) rewrite H1. apply IHl'. apply H1.
+      * (* text x = false *) simpl. rewrite Htest. intros H. inversion H.
+  - (* <- *) induction l as [| x l' IHl'].
+    + (* l = nil *) simpl. reflexivity.
+    + (* l = x :: l' *) simpl. destruct (test x) eqn:Htest.
+      * (* test x = true *) intros H. apply IHl'. apply H.
+      * (* test x = false *) intros H. inversion H. inversion H0.
+Qed.
 
 (** Are there any important properties of the function [forallb] which
     are not captured by your specification? *)
@@ -1563,7 +1590,10 @@ Qed.
 Theorem excluded_middle_irrefutable:  forall (P:Prop),
   ~ ~ (P \/ ~ P).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P. unfold not. intros H. apply H.
+  right. intros HP. apply H.
+  left. apply HP.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (not_exists_dist)  *)
@@ -1583,7 +1613,10 @@ Theorem not_exists_dist :
   forall (X:Type) (P : X -> Prop),
     ~ (exists x, ~ P x) -> (forall x, P x).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros Hexcl X P H x. unfold not in H. unfold excluded_middle in Hexcl.
+  apply ex_falso_quodlibet. apply H. exists x. intros HP.
+  unfold not in Hexcl. apply H. exists x. Admitted.
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced, optional (classical_axioms)  *)
