@@ -1628,12 +1628,10 @@ Theorem not_exists_dist :
     ~ (exists x, ~ P x) -> (forall x, P x).
 Proof.
   intros Hexcl X P H x. unfold not in H. unfold excluded_middle in Hexcl.
-  assert ( P x \/ ~ P x) as HexclPx.
-  - (* P x \/ ~ P x *) apply Hexcl.
-  - (* P x *) inversion HexclPx.
-    + (* P x *) apply H0.
-    + (* ~ P x *) apply ex_falso_quodlibet. apply H. exists x.
-      unfold not in H0. apply H0.
+  destruct Hexcl with (P:=(P x)).
+  - (* P x *) apply H0.
+  - (* ~ P x *) apply ex_falso_quodlibet. apply H. exists x.
+    unfold not in H0. apply H0.
 (* Proofs are ugly and show that I don't really know what I'm doing *)
 Qed.
 (** [] *)
@@ -1657,17 +1655,74 @@ Definition double_negation_elimination := forall P:Prop,
 
 Definition de_morgan_not_and_not := forall P Q:Prop,
   ~(~P /\ ~Q) -> P\/Q.
-  
+
 Definition implies_to_or := forall P Q:Prop,
   (P->Q) -> (~P\/Q).
 
-Theorem excl_is_dneg :
+Theorem excl_dneg :
   excluded_middle <-> double_negation_elimination.
 Proof.
   unfold excluded_middle. unfold double_negation_elimination. split.
   - (* -> *) unfold not. intros Hexcl P. intros H.
-    exfalso. apply H. intros HP. Admitted.
+    destruct Hexcl with (P:=P).
+    + (* P *) apply H0.
+    + (* P \/ (P -> False) *) exfalso. apply H. apply H0.
+  - (* <- *) unfold not. intros Hdneg P.
+    apply Hdneg. intros H.
+    assert ((P -> False) /\ ((P -> False) -> False)) as Hwrong.
+    + (* proove the assert *) split.
+      * (* *) intros HP. apply H. left. apply HP.
+      * (* *) intros HPF. apply H. right. apply HPF.
+    + (* *) apply H. right. apply Hwrong.
+Qed.
+(* I don't fully understand my proof I think. It took me a while to complete.
+ * My intuition was that the hypothesis were contradictory so I used an
+ * assert. *)
+
+Theorem excl_demorg :
+  excluded_middle <-> de_morgan_not_and_not.
+Proof.
+  unfold excluded_middle. unfold de_morgan_not_and_not. split.
+  - (* -> *) unfold not. intros Hexcl P Q. intros H.
+    destruct Hexcl with (P:=P) as [HP | HPF].
+    + (* P *) left. apply HP.
+    + (* P -> False *) right. destruct Hexcl with (P:=Q) as [HQ | HQF].
+      * (* Q *) apply HQ.
+      * (* Q -> False *) exfalso. apply H. split.
+        -- (* *) apply HPF.
+        -- (* *) apply HQF.
+  - (* <- *) unfold not. intros Hdemorg P.
+    apply Hdemorg. intros H. apply H. intros HP.
+    inversion H. apply H0. apply HP.
+Qed.
+
+Theorem peirce_impl :
+  peirce <-> implies_to_or.
+Proof.
+  unfold peirce. unfold implies_to_or. split.
+  - (* -> *) intros Hpeirce P Q. intros HPQ. unfold not.
+    Admitted.
   (*- (* <- *)*)
+
+Theorem excl_peirce :
+  excluded_middle <-> peirce.
+Proof.
+  unfold excluded_middle. unfold peirce. split.
+  - (* -> *) intros Hexcl P Q. intros H. apply H.
+    Admitted.
+  (*- (* <- *)*)
+
+Theorem excl_impl :
+  excluded_middle <-> implies_to_or.
+Proof.
+  unfold excluded_middle. unfold implies_to_or. split.
+  - (* -> *) intros Hexcl P Q. intros HPQ.
+    destruct Hexcl with (P:=P) as [HP | HNP].
+    + (* P *) right. apply HPQ. apply HP.
+    + (* ~ P *) left. apply HNP.
+  - (* <- *) intros Himpl P.
+    apply or_commut. apply Himpl. intros HP. apply HP.
+Qed.
 
 Theorem classical_axioms :
   excluded_middle
