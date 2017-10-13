@@ -1696,13 +1696,23 @@ Proof.
     inversion H. apply H0. apply HP.
 Qed.
 
-Theorem peirce_impl :
-  peirce <-> implies_to_or.
+(*
+Theorem impl_peirce :
+  implies_to_or <-> peirce.
 Proof.
   unfold peirce. unfold implies_to_or. split.
-  - (* -> *) intros Hpeirce P Q. intros HPQ. unfold not.
-    Admitted.
-  (*- (* <- *)*)
+  - (* -> *) intros Himpl P Q. intros HPQP.
+    apply HPQP. intros HP. unfold not in Himpl.
+    destruct Himpl with (P:=(P -> False)) (Q:=(Q -> False)) as [HQF | HPF].
+    + (*  *) intros HQ. apply HP.
+    + (* *)
+  - (* <- *) intros Hpeirce P Q. intros HPQ. unfold not.
+    assert ((((P -> False) -> False) /\ (Q -> False)) -> False) as Hwrong.
+    (* Rewriting with a negation *)
+    + (* P -> Q *) intros H. destruct H as [HPFF HQF].
+      apply HQF. apply HPQ. apply Hpeirce with (Q:=Q).
+    + (* *)
+*)
 
 Theorem excl_peirce :
   excluded_middle <-> peirce.
