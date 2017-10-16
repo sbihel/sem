@@ -127,7 +127,10 @@ Qed.
 Theorem ev_double : forall n,
   ev (double n).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction n as [| n' IHn'].
+  - (* n = 0 *) simpl. apply ev_0.
+  - (* n = S n' *) simpl. apply ev_SS. apply IHn'.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -288,12 +291,21 @@ Proof.
 Theorem SSSSev__even : forall n,
   ev (S (S (S (S n)))) -> ev n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n E.
+  inversion E as [| n' E'].
+  inversion E' as [|n'' E''].
+  apply E''.
+Qed.
 
 Theorem even5_nonsense :
   ev 5 -> 2 + 2 = 9.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros E.
+  exfalso.
+  inversion E as [| n' E'].
+  inversion E' as [| n'' E''].
+  inversion E'' as [| n''' E'''].
+Qed.
 (** [] *)
 
 (** The way we've used [inversion] here may seem a bit
@@ -417,7 +429,11 @@ Qed.
 (** **** Exercise: 2 stars (ev_sum)  *)
 Theorem ev_sum : forall n m, ev n -> ev m -> ev (n + m).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m En Em.
+  induction En as [| n' En' IHEn'].
+  - (* n = 0 *) apply Em.
+  - (* n = S (S n') *) simpl. apply ev_SS. apply IHEn'.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced (ev_alternate)  *)
@@ -435,7 +451,20 @@ Inductive ev' : nat -> Prop :=
 
 Theorem ev'_ev : forall n, ev' n <-> ev n.
 Proof.
- (* FILL IN HERE *) Admitted.
+  intros n. split.
+  - (* -> *) intros E. induction E as [| | n' m' En' IHEn' Em' IHEm'].
+    + (* ev'_0*) apply ev_0.
+    + (* ev'_2 *) apply (ev_SS 0 ev_0).
+    + (* ev'_sum *) apply ev_sum. apply IHEn'. apply IHEm'.
+  - (* <- *) intros E. induction E as [| n' En' IHEn'].
+    + (* ev' 0 *) apply ev'_0.
+    + (* ev' (S (S n')) *) replace (S (S n')) with (n' + 2).
+      apply ev'_sum.
+      * (* ev' n' *) apply IHEn'.
+      * (* ev' 2 *) apply ev'_2.
+      * (* n' + 2 = S (S n') *) rewrite <- plus_1_l. rewrite plus_comm.
+        reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced, recommended (ev_ev__ev)  *)
@@ -445,7 +474,11 @@ Proof.
 Theorem ev_ev__ev : forall n m,
   ev (n+m) -> ev n -> ev m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m Enm En. induction En as [| n' En' IHEn'].
+  - (* n = 0 *) rewrite plus_O_n in Enm. apply Enm.
+  - (* n = S (S n') *) simpl in Enm. apply evSS_ev in Enm.
+    apply IHEn'. apply Enm.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (ev_plus_plus)  *)
@@ -544,14 +577,15 @@ Inductive next_even : nat -> nat -> Prop :=
 (** Define an inductive binary relation [total_relation] that holds
     between every pair of natural numbers. *)
 
-(* FILL IN HERE *)
+Inductive total_relation : nat -> nat -> Prop :=
+  | total : forall n m, total_relation n m.
 (** [] *)
 
 (** **** Exercise: 2 stars (empty_relation)  *)
 (** Define an inductive binary relation [empty_relation] (on numbers)
     that never holds. *)
 
-(* FILL IN HERE *)
+Inductive empty_relation : nat -> nat -> Prop := (*False??*).
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (le_exercises)  *)
