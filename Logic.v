@@ -1450,7 +1450,7 @@ Proof.
         -- (* x1 != x2 *) inversion H2.
   - (* <- *) intros Heq. rewrite Heq. apply beq_list_refl.
     intros x. apply H. reflexivity.
-Qed. (* TODO clean *)
+Qed.
 (* More intermediate lemmas would make the proof easier to read... *)
 (** [] *)
 
@@ -1696,6 +1696,18 @@ Proof.
     inversion H. apply H0. apply HP.
 Qed.
 
+Theorem excl_impl :
+  excluded_middle <-> implies_to_or.
+Proof.
+  unfold excluded_middle. unfold implies_to_or. split.
+  - (* -> *) intros Hexcl P Q. intros HPQ.
+    destruct Hexcl with (P:=P) as [HP | HNP].
+    + (* P *) right. apply HPQ. apply HP.
+    + (* ~ P *) left. apply HNP.
+  - (* <- *) intros Himpl P.
+    apply or_commut. apply Himpl. intros HP. apply HP.
+Qed.
+
 (*
 Theorem impl_peirce :
   implies_to_or <-> peirce.
@@ -1714,25 +1726,29 @@ Proof.
     + (* *)
 *)
 
+(*
 Theorem excl_peirce :
   excluded_middle <-> peirce.
 Proof.
   unfold excluded_middle. unfold peirce. split.
   - (* -> *) intros Hexcl P Q. intros H. apply H.
-    Admitted.
+    intros HP. unfold not in Hexcl.
+    destruct Hexcl with (P:=((Q -> False) /\ (P -> False))) as [HQFPF | HQFPFF].
+    + (* *) inversion HQFPF. exfalso. apply H1. apply HP.
+    + (* *) exfalso. apply HQFPFF. split.
+      * (* *) intros HQ.
   (*- (* <- *)*)
+*)
 
-Theorem excl_impl :
-  excluded_middle <-> implies_to_or.
+(*
+Theorem dneg_peirce :
+  double_negation_elimination <-> peirce.
 Proof.
-  unfold excluded_middle. unfold implies_to_or. split.
-  - (* -> *) intros Hexcl P Q. intros HPQ.
-    destruct Hexcl with (P:=P) as [HP | HNP].
-    + (* P *) right. apply HPQ. apply HP.
-    + (* ~ P *) left. apply HNP.
-  - (* <- *) intros Himpl P.
-    apply or_commut. apply Himpl. intros HP. apply HP.
-Qed.
+  unfold double_negation_elimination. unfold peirce. split.
+  - (* -> *) unfold not. intros Hdneg P Q. intros HPQP. apply HPQP. intros HP.
+    apply Hdneg with (P:=Q). intros HQF.
+  - (* <- *)
+*)
 
 Theorem classical_axioms :
   excluded_middle
