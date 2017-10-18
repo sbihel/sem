@@ -1038,13 +1038,18 @@ Qed.
 Lemma empty_is_empty : forall T (s : list T),
   ~ (s =~ EmptySet).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T s H.
+  inversion H.
+Qed.
 
 Lemma MUnion' : forall T (s : list T) (re1 re2 : reg_exp T),
   s =~ re1 \/ s =~ re2 ->
   s =~ Union re1 re2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T s re1 re2 [H | H].
+  - (* re1 *) apply MUnionL. apply H.
+  - (* re2 *) apply MUnionR. apply H.
+Qed.
 
 (** The next lemma is stated in terms of the [fold] function from the
     [Poly] chapter: If [ss : list (list T)] represents a sequence of
@@ -1055,7 +1060,13 @@ Lemma MStar' : forall T (ss : list (list T)) (re : reg_exp T),
   (forall s, In s ss -> s =~ re) ->
   fold app ss [] =~ Star re.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T ss re H. induction ss as [| s ss' IHss'].
+  - (* ss = [] *) apply MStar0.
+  - (* ss = s :: ss' *) simpl. apply MStarApp.
+    + (* *) apply H. simpl. left. reflexivity.
+    + (* *) apply IHss'. intros s0 HIn. apply H.
+      simpl. right. apply HIn.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars (reg_exp_of_list)  *)
@@ -1066,7 +1077,8 @@ Proof.
 Lemma reg_exp_of_list_spec : forall T (s1 s2 : list T),
   s1 =~ reg_exp_of_list s2 <-> s1 = s2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T s1 s2. split.
+  - (* -> *) intros H. induction H. Admitted.
 (** [] *)
 
 (** Since the definition of [exp_match] has a recursive
@@ -1286,7 +1298,21 @@ Lemma MStar'' : forall T (s : list T) (re : reg_exp T),
     s = fold app ss []
     /\ forall s', In s' ss -> s' =~ re.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T s re Hsre.
+  induction Hsre
+    as [|x'| | | | | ].
+  - (* MEmpty *) exists []. split.
+    + (* left *) reflexivity.
+    + (* right *) intros s' HIn. inversion HIn.
+  - (* MChar *) exists [[x']]. split.
+    + (* left *) reflexivity.
+    + (* right *) intros s' HIn. inversion HIn.
+      * (* *) rewrite <- H. apply MApp.
+  - (* MApp *)
+  - (* MUnionL *)
+  - (* MUnionR *)
+  - (* MStar0 *)
+  - (* MStarApp *)
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced (pumping)  *)
