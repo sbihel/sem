@@ -672,12 +672,13 @@ Qed.
 Theorem leb_complete : forall n m,
   leb n m = true -> n <= m.
 Proof.
-  intros n m Hlenm. induction n as [| n' IHn'].
-  - (* n = 0 *) apply O_le_n.
-  - (* n = S n' *) destruct m as [| m'].
+  intros n. induction n as [| n' IHn'].
+  - (* n = 0 *) intros m Hlenm. apply O_le_n.
+  - (* n = S n' *) intros m Hlenm. destruct m as [| m'].
     + (* m = 0 *) inversion Hlenm.
     + (* m = S m' *) simpl in Hlenm. apply n_le_m__Sn_le_Sm.
-      Admitted.
+      apply IHn'. apply Hlenm.
+Qed.
 
 (** Hint: The next one may be easiest to prove by induction on [m]. *)
 Theorem leb_correct : forall n m,
@@ -727,21 +728,21 @@ Inductive R : nat -> nat -> nat -> Prop :=
 
 (** - Which of the following propositions are provable?
       - [R 1 1 2]
-        YES: c4 -> c1
+        YES: c2, c3, c1
       - [R 2 2 6]
         NO
 
     - If we dropped constructor [c5] from the definition of [R],
       would the set of provable propositions change?  Briefly (1
       sentence) explain your answer.
-      YES:
+      NO: c5 swaps n and m, and c2 and c3 are equivalent with a swap so we can
+          already proove propositions without needing to swap.
 
     - If we dropped constructor [c4] from the definition of [R],
       would the set of provable propositions change?  Briefly (1
       sentence) explain your answer.
-      NO: by applying c2 and c3, we increment once m and n et twice o.
-
-(* FILL IN HERE *)
+      NO: applying c4 increments all the parameters so it is useless as we want
+          to reach 0.
 []
 *)
 
@@ -813,7 +814,46 @@ End R.
       is a subsequence of [l3], then [l1] is a subsequence of [l3].
       Hint: choose your induction carefully! *)
 
-(* FILL IN HERE *)
+Inductive subseq : (list nat) -> (list nat) -> Prop :=
+  | ss_empty    : forall s2, subseq [] s2
+  | ss_match    : forall s1 s2 x, subseq s1 s2 ->
+                    subseq (x :: s1) (x :: s2)
+  | ss_nomatch : forall s1 s2 x, subseq s1 s2 ->
+                    subseq s1 (x :: s2).
+
+Theorem subseq_refl : forall s,
+  subseq s s.
+Proof.
+  intros s. induction s as [| x s' IHs'].
+  - (* s = [] *) apply ss_empty.
+  - (* s = x :: s' *) apply ss_match. apply IHs'.
+Qed.
+
+Theorem subseq_app : forall s1 s2 s3,
+  subseq s1 s2 -> subseq s1 (s2 ++ s3).
+Proof.
+  intros s1 s2 s3 Hs1s2. induction Hs1s2.
+  - (* ss_empty *) apply ss_empty.
+  - (* ss_match *) simpl. apply ss_match. apply IHHs1s2.
+  - (* ss_nomatch *) simpl. apply ss_nomatch. apply IHHs1s2.
+Qed.
+
+Theorem subseq_trans : forall s1 s2 s3,
+  subseq s1 s2 -> subseq s2 s3 -> subseq s1 s3.
+Proof.
+  intros s1 s2 s3 Hs1s2 Hs2s3.
+  generalize dependent Hs1s2. generalize dependent s1.
+  induction Hs2s3. (* as [| s3' s2' x | s3' s2' x2 x3].*)
+  (* TODO understand induction's naming *)
+  - (* ss_empty *) intros s1 Hs1. inversion Hs1. apply ss_empty.
+  - (* ss_match *) intros s0 Hs0. inversion Hs0.
+    + (* *) apply ss_empty.
+    + (* *) apply ss_match. apply IHHs2s3. apply H1.
+    + (* *) apply ss_nomatch. apply IHHs2s3. apply H1.
+  - (* ss_nomatch *) intros s0 Hs0s1. apply IHHs2s3 in Hs0s1.
+    apply ss_nomatch. apply Hs0s1.
+Qed.
+(* Almost forgot this exercise... *)
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (R_provability)  *)
@@ -826,10 +866,9 @@ End R.
 
     Which of the following propositions are provable?
 
-    - [R 2 [1;0]]
-    - [R 1 [1;2;1;0]]
-    - [R 6 [3;2;1;0]]  *)
-
+    - [R 2 [1;0]] YES: c2 (R 1 [0]), c2 (R 0 []), c1
+    - [R 1 [1;2;1;0]] YES: c3, c2, c3, c3, c2, c2, c2, c1
+    - [R 6 [3;2;1;0]] NO: stuck as we cannot decrease 6  *)
 (** [] *)
 
 
@@ -1140,17 +1179,17 @@ Proof.
     apply Hin.
   - (* MChar *)
     apply Hin.
-  - simpl. rewrite in_app_iff in *.
+  - simpl. rewrite In_app_iff in *.
     destruct Hin as [Hin | Hin].
     + (* In x s1 *)
       left. apply (IH1 Hin).
     + (* In x s2 *)
       right. apply (IH2 Hin).
   - (* MUnionL *)
-    simpl. rewrite in_app_iff.
+    simpl. rewrite In_app_iff.
     left. apply (IH Hin).
   - (* MUnionR *)
-    simpl. rewrite in_app_iff.
+    simpl. rewrite In_app_iff.
     right. apply (IH Hin).
   - (* MStar0 *)
     destruct Hin.
@@ -1165,7 +1204,7 @@ Proof.
     to reason about the case [In x s2]. *)
 
   - (* MStarApp *)
-    simpl. rewrite in_app_iff in Hin.
+    simpl. rewrite In_app_iff in Hin.
     destruct Hin as [Hin | Hin].
     + (* In x s1 *)
       apply (IH1 Hin).
@@ -1360,8 +1399,7 @@ Lemma MStar'' : forall T (s : list T) (re : reg_exp T),
 Proof.
   intros T s re Hsre.
   remember (Star re) as re'.
-  induction Hsre
-    as [|x' |s1 s2 |s1 |s2 | | s1 s2].
+  induction Hsre.
   - (* MEmpty *) inversion Heqre'.
   - (* MChar *) inversion Heqre'.
   - (* MApp *) inversion Heqre'.
@@ -1370,12 +1408,23 @@ Proof.
   - (* MStar0 *) exists nil. split.
     + (* left *) reflexivity.
     + (* right *) intros s' HIn. inversion HIn.
-  - (* MStarApp *) apply IHHsre2 in Heqre'.
-    destruct Heqre' as [x [Hl Hr]]. exists (s1 :: x). split.
-    + (* left *) simpl. rewrite Hl. reflexivity.
-    + (* right *) intros s' HIn. simpl in HIn. destruct HIn.
-      * (* s1 = s' *) admit.
-      * (* In s' x *) apply Hr. apply H.
+  - (* MStarApp *) inversion Heqre' as [E].
+    destruct IHHsre1 as [x1 IHHsre1].
+    + (* re0 = Star re *) admit.
+    + (* *) destruct IHHsre2 as [x2 IHHsre2].
+      * (* Star re0 = Star re *) rewrite E. reflexivity.
+      * (* *) destruct IHHsre1 as [H11 H12]. destruct IHHsre2 as [H21 H22].
+        exists (x1 ++ x2). split.
+        -- (* left *) rewrite H11. rewrite H21.
+          destruct x1 as [| e1 x1' IHx1'].
+          ++ (* x1 = [] *) reflexivity.
+          ++ (* x1 = e1 :: x1' *) simpl. rewrite <- app_assoc.
+            admit.
+        -- (* right *) intros s'. rewrite In_app_iff. intros H.
+          destruct H as [H1 | H2].
+          ++ (* *) apply H12. apply H1.
+          ++ (* *) apply H22. apply H2.
+(* Must be a problem with s1 not being generalized. *)
 Admitted.
 (** [] *)
 
@@ -1540,8 +1589,9 @@ Proof.
     + (* s1 = x1 :: s1' *) simpl in IH1. simpl in Hlength.
       destruct s2 as [| x2 s2'].
       * (* s2 = [] *) simpl in Hlength. rewrite plus_comm in Hlength.
-        rewrite plus_O_n in Hlength.
-      * (* s2 = x2 :: s2' *)
+        rewrite plus_O_n in Hlength. admit.
+      * (* s2 = x2 :: s2' *) admit.
+(* Nonsense *)
 Admitted.
 
 End Pumping.
