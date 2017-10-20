@@ -1462,13 +1462,14 @@ Proof.
   - (* MChar *) simpl. omega.
   - (* MApp *) simpl. intros Hlength. rewrite app_length in Hlength.
     admit.
+
   - (* MUnionL *) simpl. intros Hlength.
     apply le_lt_or_eq in Hlength. destruct Hlength as [Hlength | Hlength].
     + (* pmpng + pmpng < length *) apply plus_lt in Hlength.
       destruct Hlength as [Hlre1 Hlre2]. destruct IH.
       * (* proving <= from < *) inversion Hlre1.
-        ++ (* *) omega.
-        ++ (* *) omega.
+        ++ (* *) omega. (* couldn't do it without omega *)
+        ++ (* *) omega. (* couldn't do it without omega *)
       * (* *) destruct H. destruct H. (* TODO clean *)
         exists x. exists x0. exists x1. destruct H as [H1 [H2 H3]]. split.
         -- (* 1st *) apply H1.
@@ -1483,9 +1484,38 @@ Proof.
       * (* *) split.
         -- (* 2nd *) apply H2.
         -- (* 3rd *) intros m. apply MUnionL. apply H3.
-  - (* MUnionR *) admit.
-  - (* MStar0 *) admit.
-  - (* MStarApp *) admit.
+
+  - (* MUnionR *) (* same as MUnionL *)
+    simpl. intros Hlength.
+    apply le_lt_or_eq in Hlength. destruct Hlength as [Hlength | Hlength].
+    + (* pmpng + pmpng < length *) apply plus_lt in Hlength.
+      destruct Hlength as [Hlre1 Hlre2]. destruct IH.
+      * (* proving <= from < *) inversion Hlre2.
+        ++ (* *) omega. (* couldn't do it without omega *)
+        ++ (* *) omega. (* couldn't do it without omega *)
+      * (* *) destruct H. destruct H. (* TODO clean *)
+        exists x. exists x0. exists x1. destruct H as [H1 [H2 H3]]. split.
+        -- (* 1st *) apply H1.
+        -- (* *) split.
+          ++ (* 2nd *) apply H2.
+          ++ (* 3rd *) intros m. apply MUnionR. apply H3.
+    + (* pmpng + pmpng = length *) rewrite <- Hlength in IH.
+      rewrite plus_comm in IH.
+      rewrite <- le_plus_l in IH. destruct IH. apply le_n.
+      destruct H. destruct H. (* TODO clean *)
+      exists x. exists x0. exists x1. destruct H as [H1 [H2 H3]]. split.
+      * (* 1st *) apply H1.
+      * (* *) split.
+        -- (* 2nd *) apply H2.
+        -- (* 3rd *) intros m. apply MUnionR. apply H3.
+
+  - (* MStar0 *) simpl. intros Hlength. inversion Hlength.
+  - (* MStarApp *) simpl. rewrite app_length. intros Hlength. simpl in IH2.
+    induction s1 as [|x1 s1' IHs1'].
+    + (* s1 = [] *) simpl in Hlength. simpl. destruct IH2. apply Hlength.
+      destruct H. destruct H. exists x. exists x0. exists x1. apply H.
+      (* TODO clean *)
+    + (* s1 = x1 :: s1' *) simpl in IH1. admit.
 Admitted.
 
 End Pumping.
