@@ -1457,11 +1457,32 @@ Proof.
     as [ | x | s1 re1 s2 re2 Hmatch1 IH1 Hmatch2 IH2
        | s1 re1 re2 Hmatch IH | re1 s2 re2 Hmatch IH
        | re | s1 s2 re Hmatch1 IH1 Hmatch2 IH2 ].
-  - (* MEmpty *)
-    simpl. omega.
+
+  - (* MEmpty *) simpl. omega.
   - (* MChar *) simpl. omega.
+
   - (* MApp *) simpl. intros Hlength. rewrite app_length in Hlength.
-    admit.
+    apply Nat.add_le_cases in Hlength. destruct Hlength as [Hlength | Hlength].
+    + (* re1 s1 *) apply IH1 in Hlength.
+      destruct Hlength as [x1]. destruct H as [x2]. destruct H as [x3].
+      destruct H as [H1 [H2 H3]].
+      exists x1. exists x2. exists (x3 ++ s2). split.
+      * (* 1st *) rewrite H1. rewrite <- 2?app_assoc. reflexivity.
+      * (* *) split.
+        -- (* 2nd *) apply H2.
+        -- (* 3rd *) intros m. rewrite 2?app_assoc. apply MApp.
+          ++ (* *) rewrite <- app_assoc. apply H3.
+          ++ (* *) apply Hmatch2.
+    + (* re2 s2 *) apply IH2 in Hlength.
+      destruct Hlength as [x1]. destruct H as [x2]. destruct H as [x3].
+      destruct H as [H1 [H2 H3]].
+      exists (s1 ++ x1). exists x2. exists x3. split.
+      * (* 1st *) rewrite H1. rewrite <- 2?app_assoc. reflexivity.
+      * (* *) split.
+        -- (* 2nd *) apply H2.
+        -- (* 3rd *) intros m. rewrite <- app_assoc. apply MApp.
+          ++ (* *) apply Hmatch1.
+          ++ (* *) apply H3.
 
   - (* MUnionL *) simpl. intros Hlength.
     apply le_lt_or_eq in Hlength. destruct Hlength as [Hlength | Hlength].
@@ -1510,12 +1531,17 @@ Proof.
         -- (* 3rd *) intros m. apply MUnionR. apply H3.
 
   - (* MStar0 *) simpl. intros Hlength. inversion Hlength.
+
   - (* MStarApp *) simpl. rewrite app_length. intros Hlength. simpl in IH2.
-    induction s1 as [|x1 s1' IHs1'].
+    destruct s1 as [|x1 s1'].
     + (* s1 = [] *) simpl in Hlength. simpl. destruct IH2. apply Hlength.
       destruct H. destruct H. exists x. exists x0. exists x1. apply H.
       (* TODO clean *)
-    + (* s1 = x1 :: s1' *) simpl in IH1. admit.
+    + (* s1 = x1 :: s1' *) simpl in IH1. simpl in Hlength.
+      destruct s2 as [| x2 s2'].
+      * (* s2 = [] *) simpl in Hlength. rewrite plus_comm in Hlength.
+        rewrite plus_O_n in Hlength.
+      * (* s2 = x2 :: s2' *)
 Admitted.
 
 End Pumping.
