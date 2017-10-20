@@ -755,15 +755,24 @@ Definition fR : nat -> nat -> nat := plus.
 Theorem R_equiv_fR : forall m n o, R m n o <-> fR m n = o.
 Proof.
   intros m n o. unfold fR. split.
-  - (* -> *) intros HR. induction o as [| o' IHo'].
-    + (* o = 0 *) destruct n as [| n'].
-      * (* *) rewrite plus_comm. rewrite plus_O_n. destruct m as [| m'].
-        -- (* *) reflexivity.
-        -- (* *) Admitted. (*
-      * (* *)
-    + (* o = S o' *)
-  - (* <- *)
-  *)
+  - (* -> *) intros HR. induction HR.
+    + (* c1 *) reflexivity.
+    + (* c2 *) rewrite plus_Sn_m. rewrite IHHR. reflexivity.
+    + (* c3 *) rewrite plus_comm. rewrite plus_Sn_m.
+      rewrite plus_comm. rewrite IHHR. reflexivity.
+    + (* c4 *) SearchAbout plus. simpl in IHHR. inversion IHHR.
+      rewrite plus_comm in H0. rewrite plus_Sn_m in H0. inversion H0.
+      apply plus_comm.
+    + (* c5 *) rewrite plus_comm. apply IHHR.
+  - (* <- *) intros Hplus. induction Hplus. (* R m n (m + n) *)
+    generalize dependent n. induction m as [| m' IHm'].
+    + (* m = 0 *) intros n. simpl. induction n as [| n' IHn'].
+      * (* n = 0 *) apply c1.
+      * (* n = S n' *) apply c3. apply IHn'.
+    + (* m = S m' *) intros n. destruct n as [| n'].
+      * (* n = 0 *) simpl. apply c2. apply IHm'.
+      * (* n = S n' *) rewrite plus_Sn_m. apply c2. apply IHm'.
+Qed.
 (** [] *)
 
 End R.
@@ -834,7 +843,7 @@ End R.
     already seen, and does not seem to offer any concrete benefit over
     them.  To give a better sense of the power of inductive
     definitions, we now show how to use them to model a classic
-    concept in computer science: _regular expressions_. 
+    concept in computer science: _regular expressions_.
 
     Regular expressions are a simple language for describing strings,
     defined as elements of the following inductive type.  (The names
@@ -1078,7 +1087,19 @@ Lemma reg_exp_of_list_spec : forall T (s1 s2 : list T),
   s1 =~ reg_exp_of_list s2 <-> s1 = s2.
 Proof.
   intros T s1 s2. split.
-  - (* -> *) intros H. induction H. Admitted.
+  - (* -> *) generalize dependent s1. induction s2 as [| x2 s2' IHs2'].
+    + (* s2 = [] *) intros s1 H. inversion H. reflexivity.
+    + (* s2 = x2 :: s2' *) intros s1 H. simpl in H.
+      inversion H. apply IHs2' in H4. rewrite H4. inversion H3. reflexivity.
+  - (* <- *) generalize dependent s1. induction s2 as [| x2 s2' IHs2'].
+    + (* s2 = [] *) intros s1 H. rewrite H. apply MEmpty.
+    + (* s2 = x2 :: s2' *) intros s1 H. destruct s1 as [| x1 s1'].
+      * (* s1 = [] *) inversion H.
+      * (* s1 = x1 :: s1' *) inversion H. apply IHs2' in H2. simpl.
+        apply (MApp [x2] (Char x2)).
+        -- (* *) apply MChar.
+        -- (* *) apply IHs2'. reflexivity.
+Qed.
 (** [] *)
 
 (** Since the definition of [exp_match] has a recursive
@@ -1157,13 +1178,52 @@ Qed.
     regular expression matches some string. Prove that your function
     is correct. *)
 
-Fixpoint re_not_empty {T} (re : reg_exp T) : bool 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Fixpoint re_not_empty {T} (re : reg_exp T) : bool :=
+  match re with
+  | EmptySet      => false
+  | EmptyStr      => true
+  | Char _        => true
+  | App re1 re2   => andb (re_not_empty re1) (re_not_empty re2)
+  | Union re1 re2 => orb (re_not_empty re1) (re_not_empty re2)
+  | Star _        => true
+  end.
 
 Lemma re_not_empty_correct : forall T (re : reg_exp T),
   (exists s, s =~ re) <-> re_not_empty re = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T re. split.
+  - (* -> *) intros H.
+    induction re as [| | x
+                     | re1 IHre1 re2 IHre2
+                     | re1 IHre1 re2 IHre2| re].
+    + (* EmptySet *) simpl. inversion H. inversion H0.
+    + (* EmptyStr *) simpl. reflexivity.
+    + (* Char x *) simpl. reflexivity.
+    + (* App re1 re2 *) simpl. apply andb_true_iff. split.
+      * (* left *) apply IHre1. inversion H. inversion H0. exists s1. apply H4.
+      * (* right *) apply IHre2. inversion H. inversion H0. exists s2. apply H5.
+    + (* Union re1 re2 *) simpl. apply orb_true_iff.
+      destruct H. inversion H.
+      * (* *) left. apply IHre1. exists x. apply H2.
+      * (* *) right. apply IHre2. exists x. apply H2.
+    + (* Star re *) simpl. reflexivity.
+  - (* <- *) intros H.
+    induction re as [| | x
+                     | re1 IHre1 re2 IHre2
+                     | re1 IHre1 re2 IHre2| re].
+    + (* EmptySet *) inversion H.
+    + (* EmptyStr *) exists nil. apply MEmpty.
+    + (* Char x *) exists [x]. apply MChar.
+    + (* App re1 re2 *) inversion H. apply andb_true_iff in H1. inversion H1.
+      apply IHre1 in H0. apply IHre2 in H2. inversion H0. inversion H2.
+      exists (x ++ x0). apply MApp. apply H3. apply H4.
+    + (* Union re1 re2 *) inversion H. apply orb_true_iff in H1. inversion H1.
+      * (* left (i.e. re1) *) apply IHre1 in H0. inversion H0.
+        exists x. apply MUnionL. apply H2.
+      * (* right (i.e. re2) *) apply IHre2 in H0. inversion H0.
+        exists x. apply MUnionR. apply H2.
+    + (* Star re *) exists nil. apply MStar0.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1299,20 +1359,24 @@ Lemma MStar'' : forall T (s : list T) (re : reg_exp T),
     /\ forall s', In s' ss -> s' =~ re.
 Proof.
   intros T s re Hsre.
+  remember (Star re) as re'.
   induction Hsre
-    as [|x'| | | | | ].
-  - (* MEmpty *) exists []. split.
+    as [|x' |s1 s2 |s1 |s2 | | s1 s2].
+  - (* MEmpty *) inversion Heqre'.
+  - (* MChar *) inversion Heqre'.
+  - (* MApp *) inversion Heqre'.
+  - (* MUnionL *) inversion Heqre'.
+  - (* MUnionR *) inversion Heqre'.
+  - (* MStar0 *) exists nil. split.
     + (* left *) reflexivity.
     + (* right *) intros s' HIn. inversion HIn.
-  - (* MChar *) exists [[x']]. split.
-    + (* left *) reflexivity.
-    + (* right *) intros s' HIn. inversion HIn.
-      * (* *) rewrite <- H. apply MApp.
-  - (* MApp *)
-  - (* MUnionL *)
-  - (* MUnionR *)
-  - (* MStar0 *)
-  - (* MStarApp *)
+  - (* MStarApp *) apply IHHsre2 in Heqre'.
+    destruct Heqre' as [x [Hl Hr]]. exists (s1 :: x). split.
+    + (* left *) simpl. rewrite Hl. reflexivity.
+    + (* right *) intros s' HIn. simpl in HIn. destruct HIn.
+      * (* s1 = s' *) admit.
+      * (* In s' x *) apply Hr. apply H.
+Admitted.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced (pumping)  *)
@@ -1321,7 +1385,7 @@ Proof.
     informally, that any sufficiently long string [s] matching a
     regular expression [re] can be "pumped" by repeating some middle
     section of [s] an arbitrary number of times to produce a new
-    string also matching [re]. 
+    string also matching [re].
 
     To begin, we need to define "sufficiently long."  Since we are
     working in a constructive logic, we actually need to be able to
@@ -1395,7 +1459,34 @@ Proof.
        | re | s1 s2 re Hmatch1 IH1 Hmatch2 IH2 ].
   - (* MEmpty *)
     simpl. omega.
-  (* FILL IN HERE *) Admitted.
+  - (* MChar *) simpl. omega.
+  - (* MApp *) simpl. intros Hlength. rewrite app_length in Hlength.
+    admit.
+  - (* MUnionL *) simpl. intros Hlength.
+    apply le_lt_or_eq in Hlength. destruct Hlength as [Hlength | Hlength].
+    + (* pmpng + pmpng < length *) apply plus_lt in Hlength.
+      destruct Hlength as [Hlre1 Hlre2]. destruct IH.
+      * (* proving <= from < *) inversion Hlre1.
+        ++ (* *) omega.
+        ++ (* *) omega.
+      * (* *) destruct H. destruct H. (* TODO clean *)
+        exists x. exists x0. exists x1. destruct H as [H1 [H2 H3]]. split.
+        -- (* 1st *) apply H1.
+        -- (* *) split.
+          ++ (* 2nd *) apply H2.
+          ++ (* 3rd *) intros m. apply MUnionL. apply H3.
+    + (* pmpng + pmpng = length *) rewrite <- Hlength in IH.
+      rewrite <- le_plus_l in IH. destruct IH. apply le_n.
+      destruct H. destruct H. (* TODO clean *)
+      exists x. exists x0. exists x1. destruct H as [H1 [H2 H3]]. split.
+      * (* 1st *) apply H1.
+      * (* *) split.
+        -- (* 2nd *) apply H2.
+        -- (* 3rd *) intros m. apply MUnionL. apply H3.
+  - (* MUnionR *) admit.
+  - (* MStar0 *) admit.
+  - (* MStarApp *) admit.
+Admitted.
 
 End Pumping.
 (** [] *)
@@ -1664,27 +1755,27 @@ Inductive nostutter {X:Type} : list X -> Prop :=
 
 Example test_nostutter_1: nostutter [3;1;4;1;5;6].
 (* FILL IN HERE *) Admitted.
-(* 
+(*
   Proof. repeat constructor; apply beq_nat_false_iff; auto.
   Qed.
 *)
 
 Example test_nostutter_2:  nostutter (@nil nat).
 (* FILL IN HERE *) Admitted.
-(* 
+(*
   Proof. repeat constructor; apply beq_nat_false_iff; auto.
   Qed.
 *)
 
 Example test_nostutter_3:  nostutter [5].
 (* FILL IN HERE *) Admitted.
-(* 
+(*
   Proof. repeat constructor; apply beq_nat_false; auto. Qed.
 *)
 
 Example test_nostutter_4:      not (nostutter [3;1;1;4]).
 (* FILL IN HERE *) Admitted.
-(* 
+(*
   Proof. intro.
   repeat match goal with
     h: nostutter _ |- _ => inversion h; clear h; subst
