@@ -1424,7 +1424,6 @@ Proof.
           destruct H as [H1 | H2].
           ++ (* *) apply H12. apply H1.
           ++ (* *) apply H22. apply H2.
-(* Must be a problem with s1 not being generalized. *)
 Admitted.
 (** [] *)
 
@@ -1665,7 +1664,12 @@ Qed.
 (** **** Exercise: 2 stars, recommended (reflect_iff)  *)
 Theorem reflect_iff : forall P b, reflect P b -> (P <-> b = true).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P b Hrefl. split.
+  - (* -> *) intros HP. inversion Hrefl.
+    + (* *) reflexivity.
+    + (* *) unfold not in H. exfalso. apply H. apply HP.
+  - (* <- *) intros Hb. rewrite Hb in Hrefl. inversion Hrefl. apply H.
+Qed.
 (** [] *)
 
 (** The advantage of [reflect] over the normal "if and only if"
@@ -1745,7 +1749,35 @@ Qed.
        forall l, pal l -> l = rev l.
 *)
 
-(* FILL IN HERE *)
+Inductive pal (X : Type) : (list X) -> Prop :=
+| pal_empty : pal X []
+| pal_one : forall x, pal X [x]
+| pal_two : forall l x, pal X l -> pal X (x :: l ++ [x]).
+
+Arguments pal {X} _.
+Arguments pal_empty {X}.
+Arguments pal_one {X} _.
+Arguments pal_two {X} _ _ _.
+
+Theorem pal_app_rev : forall X (l : list X),
+  pal (l ++ rev l).
+Proof.
+  intros X l. induction l as [| x l' IHl'].
+  - (* l = [] *) simpl. apply pal_empty.
+  - (* l = x :: l' *) simpl. rewrite app_assoc.
+    apply pal_two. apply IHl'.
+Qed.
+
+Theorem pal_rev : forall X (l : list X),
+  pal l -> l = rev l.
+Proof.
+  intros X l Hl. induction Hl.
+  - (* pal_empty *) reflexivity.
+  - (* pal_one *) reflexivity.
+  - (* pal_two *) simpl. rewrite IHHl. rewrite rev_app_distr.
+    rewrite rev_involutive. simpl. rewrite <- IHHl. reflexivity.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 5 stars, optional (palindrome_converse)  *)
