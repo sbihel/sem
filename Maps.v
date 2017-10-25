@@ -171,7 +171,8 @@ Proof. reflexivity. Qed.
 (** First, the empty map returns its default element for all keys: *)
 Lemma t_apply_empty:  forall A x v, @t_empty A v x = v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros A x v. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (t_update_eq)  *)
@@ -182,7 +183,8 @@ Proof.
 Lemma t_update_eq : forall A (m: total_map A) x v,
   (t_update m x v) x = v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros A m x v. unfold t_update. rewrite <- beq_id_refl. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (t_update_neq)  *)
@@ -195,7 +197,10 @@ Theorem t_update_neq : forall (X:Type) v x1 x2
   x1 <> x2 ->
   (t_update m x1 v) x2 = m x2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X v x1 x2 m HF. unfold t_update. rewrite false_beq_id.
+  - (* original goal *) reflexivity.
+  - (* false_beq_id condition *) apply HF.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (t_update_shadow)  *)
@@ -209,7 +214,11 @@ Lemma t_update_shadow : forall A (m: total_map A) v1 v2 x,
     t_update (t_update m x v1) x v2
   = t_update m x v2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros A m v1 v2 x. unfold t_update. apply functional_extensionality.
+  intros x'. destruct (beq_id x x').
+  - (* x = x' *) reflexivity.
+  - (* x <> x' *) reflexivity.
+Qed.
 (** [] *)
 
 (** For the final two lemmas about total maps, it's convenient to use
@@ -223,7 +232,10 @@ Proof.
 
 Lemma beq_idP : forall x y, reflect (x = y) (beq_id x y).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros x y. destruct (beq_id x y) eqn:Heq.
+  - (* x = y *) apply ReflectT. apply beq_id_true_iff. apply Heq.
+  - (* x <> y *) apply ReflectF. apply beq_id_false_iff. apply Heq.
+Qed.
 (** [] *)
 
 (** Now, given [id]s [x1] and [x2], we can use the [destruct (beq_idP
@@ -240,7 +252,11 @@ Proof.
 Theorem t_update_same : forall X x (m : total_map X),
   t_update m x (m x) = m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X x m. unfold t_update. apply functional_extensionality.
+  intros x'. destruct (beq_id x x') eqn:Heq.
+  - (* x = x' *) apply beq_id_true_iff in Heq. rewrite Heq. reflexivity.
+  - (* x <> x' *) reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, recommended (t_update_permute)  *)
@@ -254,7 +270,14 @@ Theorem t_update_permute : forall (X:Type) v1 v2 x1 x2
     (t_update (t_update m x2 v2) x1 v1)
   = (t_update (t_update m x1 v1) x2 v2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X v1 v2 x1 x2 m Hneq. unfold t_update. apply functional_extensionality.
+  intros x. destruct (beq_id x1 x) eqn:Heq1.
+  - (* x1 = x *) apply beq_id_true_iff in Heq1. rewrite <- Heq1.
+    apply beq_id_false_iff in Hneq. rewrite Hneq. reflexivity.
+  - (* x1 <> x *) destruct (beq_id x2 x) eqn:Heq2.
+    + (* x2 = x *) reflexivity.
+    + (* x2 <> x *) reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
