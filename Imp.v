@@ -466,9 +466,44 @@ Qed.
     [optimize_0plus] function is only one of many possible
     optimizations on arithmetic and boolean expressions.  Write a more
     sophisticated optimizer and prove it correct.
-
-(* FILL IN HERE *)
 *)
+
+Fixpoint optimize_soph (a:aexp) : aexp :=
+  match a with
+  | ANum n =>
+      ANum n
+  | APlus e1 (ANum 0) =>
+      optimize_soph e1
+  | APlus (ANum 0) e2 =>
+      optimize_soph e2
+  | APlus e1 e2 =>
+      APlus (optimize_soph e1) (optimize_soph e2)
+  | AMinus e1 (ANum 0) =>
+      optimize_soph e1
+  | AMinus e1 e2 =>
+      AMinus (optimize_0plus e1) (optimize_0plus e2)
+  | AMult e1 (ANum 0) =>
+      ANum 0
+  | AMult (ANum 0) e2 =>
+      ANum 0
+  | AMult e1 (ANum 1) =>
+      optimize_soph e1
+  | AMult (ANum 1) e2 =>
+      optimize_soph e2
+  | AMult e1 e2 =>
+      AMult (optimize_0plus e1) (optimize_0plus e2)
+  end.
+
+Theorem optimize_soph_sound : forall a,
+  aeval (optimize_soph a) = aeval a.
+Proof.
+  intros a.
+  induction a;
+    try reflexivity.
+  - (* APlus *) destruct a1; admit.
+  - (* AMinus *) admit.
+  - (* AMult *) admit.
+Admitted.
 (** [] *)
 
 (* ================================================================= *)
@@ -796,17 +831,14 @@ Proof.
           subst; reflexivity).
     + (* BNot *) simpl. rewrite IHHb. reflexivity.
     + (* BAnd *) simpl. rewrite IHHb1. rewrite IHHb2. reflexivity.
-  - (* <- *) intros Hb. rewrite <- Hb. induction b.
-    + (* BTrue *) simpl. apply E_BTrue.
-    + (* BFalse *) simpl. apply E_BFalse.
-    + (* BEq *) simpl. apply E_BEq; apply aeval_iff_aevalR; reflexivity.
-    + (* BLe *) simpl. apply E_BLe; apply aeval_iff_aevalR; reflexivity.
-    + (* BNot *) simpl. apply E_BNot. apply IHb. rewrite <- Hb. simpl.
-      admit.
-    + (* BAnd *) simpl. apply E_BAnd.
-      * (* *) apply IHb1. rewrite <- Hb. simpl. admit.
-      * (* *) admit.
-Admitted.
+  - (* <- *) generalize dependent b'.
+    induction b; simpl; intros; subst; constructor;
+      try (rewrite aeval_iff_aevalR; reflexivity).
+    + (* *) apply IHb. reflexivity.
+    + (* *) apply IHb1. reflexivity.
+    + (* *) apply IHb2. reflexivity.
+    (* TODO clean *)
+Qed.
 (** [] *)
 
 End AExp.
