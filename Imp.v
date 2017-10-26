@@ -31,7 +31,8 @@ Require Import Coq.Arith.EqNat.
 Require Import Coq.omega.Omega.
 Require Import Coq.Lists.List.
 Import ListNotations.
-Require Import ./Maps.
+Require Import Maps.
+(* Require Import ./Maps. *)
 
 (* ################################################################# *)
 (** * Arithmetic and Boolean Expressions *)
@@ -438,13 +439,26 @@ Qed.
     it is sound.  Use the tacticals we've just seen to make the proof
     as elegant as possible. *)
 
-Fixpoint optimize_0plus_b (b : bexp) : bexp 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Fixpoint optimize_0plus_b (b : bexp) : bexp :=
+  match b with
+  | BTrue       => BTrue
+  | BFalse      => BFalse
+  | BEq a1 a2   => BEq (optimize_0plus a1) (optimize_0plus a2)
+  | BLe a1 a2   => BLe (optimize_0plus a1) (optimize_0plus a2)
+  | BNot b1     => BNot (optimize_0plus_b b1)
+  | BAnd b1 b2  => BAnd (optimize_0plus_b b1) (optimize_0plus_b b2)
+  end.
 
 Theorem optimize_0plus_b_sound : forall b,
   beval (optimize_0plus_b b) = beval b.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros b.
+  induction b;
+    try reflexivity;
+    try (simpl; repeat (rewrite optimize_0plus_sound); reflexivity).
+  - (* BNot *) simpl. rewrite IHb. reflexivity.
+  - (* BAnd *) simpl. rewrite IHb1. rewrite IHb2. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, optional (optimizer)  *)
@@ -750,10 +764,49 @@ Qed.
 (** Write a relation [bevalR] in the same style as
     [aevalR], and prove that it is equivalent to [beval].*)
 
-(* 
-Inductive bevalR:
-(* FILL IN HERE *)
-*)
+Inductive bevalR: bexp -> bool -> Prop :=
+  | E_BTrue : bevalR BTrue true
+  | E_BFalse : bevalR BFalse false
+  | E_BEq : forall (a1 a2 : aexp) (n1 n2 : nat),
+      aevalR a1 n1 ->
+      aevalR a2 n2 ->
+      bevalR (BEq a1 a2) (beq_nat n1 n2)
+  | E_BLe : forall (a1 a2 : aexp) (n1 n2 : nat),
+      aevalR a1 n1 ->
+      aevalR a2 n2 ->
+      bevalR (BLe a1 a2) (leb n1 n2)
+  | E_BNot : forall (b : bexp) (b' : bool),
+      bevalR b b' ->
+      bevalR (BNot b) (negb b')
+  | E_BAnd : forall (b1 b2 : bexp) (b1' b2' : bool),
+      bevalR b1 b1' ->
+      bevalR b2 b2' ->
+      bevalR (BAnd b1 b2) (andb b1' b2').
+
+  (* where "e '\\' n" := (bevalR e n) : type_scope. *)
+
+Theorem beval_iff_bevalR : forall b b',
+  (bevalR b b') <-> beval b = b'.
+Proof.
+  intros b b'. split.
+  - (* -> *) intros Hb.
+    induction Hb;
+      try reflexivity;
+      try (simpl; apply aeval_iff_aevalR in H; apply aeval_iff_aevalR in H0;
+          subst; reflexivity).
+    + (* BNot *) simpl. rewrite IHHb. reflexivity.
+    + (* BAnd *) simpl. rewrite IHHb1. rewrite IHHb2. reflexivity.
+  - (* <- *) intros Hb. rewrite <- Hb. induction b.
+    + (* BTrue *) simpl. apply E_BTrue.
+    + (* BFalse *) simpl. apply E_BFalse.
+    + (* BEq *) simpl. apply E_BEq; apply aeval_iff_aevalR; reflexivity.
+    + (* BLe *) simpl. apply E_BLe; apply aeval_iff_aevalR; reflexivity.
+    + (* BNot *) simpl. apply E_BNot. apply IHb. rewrite <- Hb. simpl.
+      admit.
+    + (* BAnd *) simpl. apply E_BAnd.
+      * (* *) apply IHb1. rewrite <- Hb. simpl. admit.
+      * (* *) admit.
+Admitted.
 (** [] *)
 
 End AExp.
