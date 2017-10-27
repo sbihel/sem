@@ -505,14 +505,22 @@ Proof.
     destruct a2; simpl in IHa2; try (rewrite IHa2); simpl; try omega.
     + destruct n; destruct n0; simpl; omega.
     + destruct n; destruct a2_1; destruct a2_2;
-      try omega;
-      try (destruct n0; simpl; omega); admit.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-  - (* AMinus *) admit.
+      simpl in IHa2; simpl; try (rewrite IHa2; reflexivity).
+    + destruct n; destruct a2_1; destruct a2_2;
+      simpl in IHa2; simpl; try (rewrite IHa2; reflexivity).
+    + destruct n; destruct a2_1; destruct a2_2;
+      simpl in IHa2; simpl; try (rewrite IHa2; reflexivity).
+    + destruct n; destruct a1_1; destruct a1_2;
+      simpl in IHa1; simpl; try (rewrite IHa1; omega).
+    + destruct n; destruct a1_1; destruct a1_2;
+      simpl in IHa1; simpl; rewrite IHa1; try rewrite Nat.add_0_r; reflexivity.
+    + destruct n; destruct a1_1; destruct a1_2;
+      simpl in IHa1; simpl; rewrite IHa1; try rewrite Nat.add_0_r; reflexivity.
+  - (* AMinus *) destruct a1; simpl in IHa1; destruct a2; simpl in IHa2; simpl;
+    try (destruct n; destruct n0; simpl; omega);
+    try (destruct a2_1; destruct a2_2; simpl in IHa2; simpl;
+        try (rewrite IHa2); simpl; try reflexivity;
+        destruct n0; simpl; try reflexivity); (* 28 subgoals *) admit.
   - (* AMult *) admit.
 Admitted.
 (** [] *)

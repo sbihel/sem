@@ -1829,17 +1829,54 @@ Admitted.
     to be a merge of two others.  Do this with an inductive relation,
     not a [Fixpoint].)  *)
 
-Inductive inord_merge (X : Type) : (list X) -> Prop :=
-| merge_empty : inord_merge X []
-| merge_2empty : forall (x : X), inord_merge X [x]
-| merge_normal : forall (l1 l2 : list X) (x : X),
-    inord_merge X.
+Inductive inord_merge (X : Type) : (list X) -> (list X) -> (list X) -> Prop :=
+| merge_empty : inord_merge X [] [] []
+| merge_empty2 : forall (x : X), inord_merge X [x] [x] []
+| merge_1 : forall (l l1 l2 : list X) (x : X),
+    inord_merge X l l1 l2 ->
+    (length l1) = (length l2) ->
+    inord_merge X (x :: l) (x :: l1) l2
+| merge_2 : forall (l l1 l2 : list X) (x : X),
+    inord_merge X l l1 l2 ->
+    (length l1) = ((length l2) + 1) ->
+    inord_merge X (x :: l) l1 (x :: l2).
+(* TODO redo it with (l ++ [x]) *)
 
-Arguments inord_merge {X} _.
+Arguments inord_merge {X} _ _ _.
 Arguments merge_empty {X}.
-Arguments merge_2empty {X} _.
-Arguments merge_normal {X} _ _ _.
-(* FILL IN HERE *)
+Arguments merge_empty2 {X} _.
+Arguments merge_1 {X} _ _ _ _ _ _.
+Arguments merge_2 {X} _ _ _ _ _ _.
+
+Theorem filter_inord_merge : forall X (l l1 l2 : list X) (test : X -> bool),
+  inord_merge l l1 l2 ->
+  forallb test l1 = true ->
+  forallb (fun (x : X) => negb (test x)) l2 = true ->
+  (filter test l) = l1.
+Proof.
+  intros X l l1 l2 test Hmerge Hl1 Hl2. induction Hmerge.
+  - (* merge_empty *) reflexivity.
+  - (* merge_empty2 *) simpl. unfold forallb in Hl1. destruct (test x).
+    + (* *) reflexivity.
+    + (* *) inversion Hl1.
+  - (* merge_1 *) simpl. destruct (test x) eqn:Htest.
+    + (* *) rewrite IHHmerge.
+      * (* *) reflexivity.
+      * (* condition on l1 *) destruct (forallb test l1) eqn:HD.
+        (* Proof by contradiction *)
+        -- (* *) reflexivity.
+        -- (* *) simpl in Hl1. rewrite HD in Hl1. rewrite Htest in Hl1.
+          inversion Hl1.
+      * (* condition on l2 *) apply Hl2.
+    + (* *) simpl in Hl1. rewrite Htest in Hl1. inversion Hl1.
+  - (* merge_2 *) simpl. destruct (test x) eqn:Htest.
+    + (* *) simpl in Hl2. rewrite Htest in Hl2. inversion Hl2.
+    + (* *) rewrite IHHmerge.
+      * (* *) reflexivity.
+      * (* condition on l1 *) apply Hl1.
+      * (* condition on l2 *) simpl in Hl2. rewrite Htest in Hl2. simpl in Hl2.
+        apply Hl2.
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced, optional (filter_challenge_2)  *)
@@ -1897,7 +1934,12 @@ Arguments merge_normal {X} _ _ _.
     stutter.) *)
 
 Inductive nostutter {X:Type} : list X -> Prop :=
- (* FILL IN HERE *)
+| nostutter_empty : nostutter []
+| nostutter_one : forall (x : X), nostutter [x]
+| nostutter_app : forall (l : list X) (x1 x2 : X),
+    nostutter (x1 :: l) ->
+    ~ (x1 = x2) ->
+    nostutter (x2 :: x1 :: l)
 .
 (** Make sure each of these tests succeeds, but feel free to change
     the suggested proof (in comments) if the given one doesn't work
@@ -1910,34 +1952,23 @@ Inductive nostutter {X:Type} : list X -> Prop :=
     example with more basic tactics.)  *)
 
 Example test_nostutter_1: nostutter [3;1;4;1;5;6].
-(* FILL IN HERE *) Admitted.
-(*
   Proof. repeat constructor; apply beq_nat_false_iff; auto.
   Qed.
-*)
 
 Example test_nostutter_2:  nostutter (@nil nat).
-(* FILL IN HERE *) Admitted.
-(*
   Proof. repeat constructor; apply beq_nat_false_iff; auto.
   Qed.
-*)
 
 Example test_nostutter_3:  nostutter [5].
-(* FILL IN HERE *) Admitted.
-(*
   Proof. repeat constructor; apply beq_nat_false; auto. Qed.
-*)
 
 Example test_nostutter_4:      not (nostutter [3;1;1;4]).
-(* FILL IN HERE *) Admitted.
-(*
   Proof. intro.
   repeat match goal with
     h: nostutter _ |- _ => inversion h; clear h; subst
   end.
-  contradiction H1; auto. Qed.
-*)
+  try contradiction H1; try contradiction H5; auto. Qed.
+(* The appropriate name for me was H5 but I kept H1 just in case *)
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced (pigeonhole principle)  *)
