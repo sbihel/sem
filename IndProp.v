@@ -1788,7 +1788,15 @@ Qed.
      forall l, l = rev l -> pal l.
 *)
 
-(* FILL IN HERE *)
+Theorem rev_pal : forall X (l : list X),
+  l = rev l -> pal l.
+Proof.
+  intros X l Hl. destruct (evenb (length l)) eqn:Heven.
+  - (* even list *) destruct l as [| x l'].
+    + (* l = [] *) apply pal_empty.
+    + (* *) admit.
+  - (* odd list *) admit.
+Admitted.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced (filter_challenge)  *)
@@ -1821,6 +1829,16 @@ Qed.
     to be a merge of two others.  Do this with an inductive relation,
     not a [Fixpoint].)  *)
 
+Inductive inord_merge (X : Type) : (list X) -> Prop :=
+| merge_empty : inord_merge X []
+| merge_2empty : forall (x : X), inord_merge X [x]
+| merge_normal : forall (l1 l2 : list X) (x : X),
+    inord_merge X.
+
+Arguments inord_merge {X} _.
+Arguments merge_empty {X}.
+Arguments merge_2empty {X} _.
+Arguments merge_normal {X} _ _ _.
 (* FILL IN HERE *)
 (** [] *)
 

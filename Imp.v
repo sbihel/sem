@@ -500,7 +500,18 @@ Proof.
   intros a.
   induction a;
     try reflexivity.
-  - (* APlus *) destruct a1; admit.
+    (* try (simpl; rewrite <- IHa1; rewrite <- IHa2). *)
+  - (* APlus *) destruct a1; simpl in IHa1; try (rewrite IHa1);
+    destruct a2; simpl in IHa2; try (rewrite IHa2); simpl; try omega.
+    + destruct n; destruct n0; simpl; omega.
+    + destruct n; destruct a2_1; destruct a2_2;
+      try omega;
+      try (destruct n0; simpl; omega); admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
   - (* AMinus *) admit.
   - (* AMult *) admit.
 Admitted.
