@@ -117,7 +117,7 @@ Inductive bexp : Type :=
          switch freely among them, usually without bothering to say
          which form of BNF they're using because there is no need to:
          a rough-and-ready informal understanding is all that's
-         important. 
+         important.
 
     It's good to be comfortable with both sorts of notations:
     informal ones for communicating between humans and formal ones for
@@ -270,7 +270,7 @@ Lemma foo : forall n, leb 0 n = true.
 Proof.
   intros.
   destruct n.
-    (* Leaves two subgoals, which are discharged 
+    (* Leaves two subgoals, which are discharged
        identically...  *)
     - (* n=0 *) simpl. reflexivity.
     - (* n=Sn' *) simpl. reflexivity.
@@ -282,11 +282,11 @@ Lemma foo' : forall n, leb 0 n = true.
 Proof.
   intros.
   (* [destruct] the current goal *)
-  destruct n; 
+  destruct n;
   (* then [simpl] each resulting subgoal *)
-  simpl; 
+  simpl;
   (* and do [reflexivity] on each resulting subgoal *)
-  reflexivity. 
+  reflexivity.
 Qed.
 
 (** Using [try] and [;] together, we can get rid of the repetition in
@@ -299,7 +299,7 @@ Proof.
   induction a;
     (* Most cases follow directly by the IH... *)
     try (simpl; rewrite IHa1; rewrite IHa2; reflexivity).
-    (* ... but the remaining cases -- ANum and APlus -- 
+    (* ... but the remaining cases -- ANum and APlus --
        are different: *)
   - (* ANum *) reflexivity.
   - (* APlus *)
@@ -326,8 +326,8 @@ Proof.
 
        aeval (optimize_0plus a) = aeval a.
 
-    _Proof_: By induction on [a].  Most cases follow directly from the IH.  
-    The remaining cases are as follows: 
+    _Proof_: By induction on [a].  Most cases follow directly from the IH.
+    The remaining cases are as follows:
 
       - Suppose [a = ANum n] for some [n].  We must show
 
@@ -410,7 +410,7 @@ Proof.
 
 Theorem In10 : In 10 [1;2;3;4;5;6;7;8;9;10].
 Proof.
-  repeat (try (left; reflexivity); right). 
+  repeat (try (left; reflexivity); right).
 Qed.
 (* Print In10. *)
 
@@ -420,8 +420,8 @@ Qed.
 
 Theorem In10' : In 10 [1;2;3;4;5;6;7;8;9;10].
 Proof.
-  repeat (left; reflexivity). 
-  repeat (right; try (left; reflexivity)). 
+  repeat (left; reflexivity).
+  repeat (right; try (left; reflexivity)).
 Qed.
 
 (** The [repeat T] tactic also does not have any upper bound on the
@@ -626,7 +626,7 @@ Qed.
      - [constructor]: Try to find a constructor [c] (from some
        [Inductive] definition in the current environment) that can be
        applied to solve the current goal.  If one is found, behave
-       like [apply c]. 
+       like [apply c].
 
     We'll see many examples of these in the proofs below. *)
 
@@ -667,7 +667,7 @@ Inductive aevalR : aexp -> nat -> Prop :=
     as the closest approximation in [.v] files.)  *)
 
 Notation "e '\\' n"
-         := (aevalR e n) 
+         := (aevalR e n)
             (at level 50, left associativity)
          : type_scope.
 
@@ -1076,7 +1076,7 @@ Proof. reflexivity. Qed.
     mechanism.  In particular, we use [IFB] to avoid conflicting with
     the [if] notation from the standard library.)
 
-     c ::= SKIP | x ::= a | c ;; c | IFB b THEN c ELSE c FI 
+     c ::= SKIP | x ::= a | c ;; c | IFB b THEN c ELSE c FI
          | WHILE b DO c END
 *)
 (**
@@ -1228,7 +1228,7 @@ Fixpoint ceval_fun_no_while (st : state) (c : com)
 
     Thus, because it doesn't terminate on all inputs, the full version
     of [ceval_fun] cannot be written in Coq -- at least not without
-    additional tricks (see chapter [ImpCEvalFun] if you're curious 
+    additional tricks (see chapter [ImpCEvalFun] if you're curious
     about what those might be). *)
 
 (* ================================================================= *)
@@ -1252,7 +1252,7 @@ Fixpoint ceval_fun_no_while (st : state) (c : com)
 
 (* ----------------------------------------------------------------- *)
 (** *** Operational Semantics *)
-(** Here is an informal definition of evaluation, presented as inference 
+(** Here is an informal definition of evaluation, presented as inference
     rules for the sake of readability:
 
                            ----------------                            (E_Skip)
@@ -1324,8 +1324,8 @@ Inductive ceval : com -> state -> state -> Prop :=
   where "c1 '/' st '\\' st'" := (ceval c1 st st').
 
 (** The cost of defining evaluation as a relation instead of a
-    function is that we now need to construct _proofs_ that some
-    program evaluates to some result state, rather than just letting
+    function is that we now need to construct _proofs_ that some/*{{{*/
+    program evaluates to some result state, rather than just letting/*}}}*/
     Coq's computation mechanism do it for us. *)
 
 Example ceval_example1:
@@ -1351,7 +1351,12 @@ Example ceval_example2:
     (X ::= ANum 0;; Y ::= ANum 1;; Z ::= ANum 2) / empty_state \\
     (t_update (t_update (t_update empty_state X 0) Y 1) Z 2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply E_Seq with (t_update empty_state X 0).
+  - (* *) apply E_Ass. reflexivity.
+  - (* *) apply E_Seq with (t_update (t_update empty_state X 0) Y 1).
+    + (* *) apply E_Ass. reflexivity.
+    + (* *) apply E_Ass. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (pup_to_n)  *)
@@ -1360,15 +1365,30 @@ Proof.
    Prove that this program executes as intended for [X] = [2]
    (the latter is trickier than you might expect). *)
 
-Definition pup_to_n : com 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Definition pup_to_n : com :=
+  Y ::= ANum 0 ;;
+  WHILE BNot (BEq (AId X) (ANum 0)) DO
+    Y ::= APlus (AId X) (AId Y) ;;
+    X ::= AMinus (AId X) (ANum 1)
+  END.
 
 Theorem pup_to_2_ceval :
   pup_to_n / (t_update empty_state X 2) \\
     t_update (t_update (t_update (t_update (t_update (t_update empty_state
       X 2) Y 0) Y 2) X 1) Y 3) X 0.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold pup_to_n.
+  apply E_Seq with (t_update (t_update empty_state X 2) Y 0).
+  - (* *) apply E_Ass. reflexivity.
+  - (* *) admit.
+  (* destruct (BEq (AId X) (ANum 0)) eqn:Eqb. *)
+  (*   + [> <] apply E_WhileEnd.              *)
+  (*   + [> <]                                *)
+  (*   + [> <]                                *)
+  (*   + [> <]                                *)
+  (*   + [> <]                                *)
+  (*   + [> <]                                *)
+Admitted.
 (** [] *)
 
 
@@ -1466,7 +1486,10 @@ Proof.
       contradictory (and so can be solved in one step with
       [inversion]). *)
 
-  (* FILL IN HERE *) Admitted.
+  induction contra; inversion Heqloopdef.
+  - (* E_WhileEnd *) rewrite H1 in H. inversion H.
+  - (* E_WhileLoop *) apply IHcontra2. apply Heqloopdef.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (no_whilesR)  *)
@@ -1523,7 +1546,7 @@ Proof.
 
       2 3 * 3 4 2 - * +
 
-   and evaluated like this (where we show the program being evaluated 
+   and evaluated like this (where we show the program being evaluated
    on the right and the contents of the stack on the left):
 
       []            |    2 3 * 3 4 2 - * +
@@ -1572,27 +1595,58 @@ Inductive sinstr : Type :=
 
 Fixpoint s_execute (st : state) (stack : list nat)
                    (prog : list sinstr)
-                 : list nat 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+                 : list nat :=
+  match prog with
+  | [] => stack
+  | (SPush x) :: prog' =>
+      s_execute st (x :: stack) prog'
+  | (SLoad x) :: prog' =>
+      s_execute st ((st x) :: stack) prog'
+  | SPlus :: prog' =>
+      match stack with
+      | [] => s_execute st [] prog'
+      | _ :: [] => s_execute st stack prog'
+      | n1 :: n2 :: stack' => s_execute st ((n2 + n1) :: stack') prog'
+      end
+  | SMinus :: prog' =>
+      match stack with
+      | [] => s_execute st [] prog'
+      | _ :: [] => s_execute st stack prog'
+      | n1 :: n2 :: stack' => s_execute st ((n2 - n1) :: stack') prog'
+      end
+  | SMult :: prog' =>
+      match stack with
+      | [] => s_execute st [] prog'
+      | _ :: [] => s_execute st stack prog'
+      | n1 :: n2 :: stack' => s_execute st ((n2 * n1) :: stack') prog'
+      end
+  end.
+
 
 Example s_execute1 :
      s_execute empty_state []
        [SPush 5; SPush 3; SPush 1; SMinus]
    = [2; 5].
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Example s_execute2 :
      s_execute (t_update empty_state X 3) [3;4]
        [SPush 4; SLoad X; SMult; SPlus]
    = [15; 4].
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 (** Next, write a function that compiles an [aexp] into a stack
     machine program. The effect of running the program should be the
     same as pushing the value of the expression on the stack. *)
 
-Fixpoint s_compile (e : aexp) : list sinstr 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Fixpoint s_compile (e : aexp) : list sinstr :=
+  match e with
+  | ANum n => [SPush n]
+  | AId x => [SLoad x]
+  | APlus n1 n2 => (s_compile n1) ++ (s_compile n2) ++ [SPlus]
+  | AMinus n1 n2 => (s_compile n1) ++ (s_compile n2) ++ [SMinus]
+  | AMult n1 n2 => (s_compile n1) ++ (s_compile n2) ++ [SMult]
+  end.
 
 (** After you've defined [s_compile], prove the following to test
     that it works. *)
@@ -1600,7 +1654,7 @@ Fixpoint s_compile (e : aexp) : list sinstr
 Example s_compile1 :
     s_compile (AMinus (AId X) (AMult (ANum 2) (AId Y)))
   = [SLoad X; SPush 2; SLoad Y; SMult; SMinus].
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced (stack_compiler_correct)  *)
@@ -1615,11 +1669,39 @@ Example s_compile1 :
     more general lemma to get a usable induction hypothesis; the main
     theorem will then be a simple corollary of this lemma. *)
 
+Theorem execute_concat :
+  forall (st : state) (l1 l2 : list sinstr) (stack : list nat),
+  s_execute st stack (l1 ++ l2) = s_execute st (s_execute st stack l1) l2.
+Proof.
+  intros st l1 l2 stack. generalize dependent stack.
+  induction l1 as [| x l1' Hl1'].
+  - (* l1 = [] *) reflexivity.
+  - (* l1 = x :: l1' *) intros stack.
+    destruct x; simpl;
+      try (apply Hl1');
+      destruct stack;
+        try (apply Hl1');
+        destruct stack;
+          apply Hl1'.
+Qed.
+
+Theorem s_compile_correct_general :
+  forall (st : state) (e : aexp) (stack : list nat),
+  s_execute st stack (s_compile e) = (aeval st e) :: stack.
+Proof.
+  intros st e stack. generalize dependent stack.
+  induction e;
+    try reflexivity; (* 2 subgoals *)
+    (* 3 subgoals *)
+    intros stack; simpl; rewrite 2?execute_concat;
+    rewrite IHe2; rewrite IHe1; reflexivity.
+Qed.
 
 Theorem s_compile_correct : forall (st : state) (e : aexp),
   s_execute st [] (s_compile e) = [ aeval st e ].
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros st e. apply s_compile_correct_general.
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced (break_imp)  *)
@@ -1661,7 +1743,7 @@ Notation "'IFB' c1 'THEN' c2 'ELSE' c3 'FI'" :=
 
     One important point is what to do when there are multiple loops
     enclosing a given [BREAK]. In those cases, [BREAK] should only
-    terminate the _innermost_ loop. Thus, after executing the 
+    terminate the _innermost_ loop. Thus, after executing the
     following...
 
        X ::= 0;;
@@ -1718,7 +1800,7 @@ Reserved Notation "c1 '/' st '\\' s '/' st'"
       and propagate the [SBreak] signal to the surrounding context;
       the resulting state is the same as the one obtained by
       executing [c1] alone. Otherwise, we execute [c2] on the state
-      obtained after executing [c1], and propagate the signal 
+      obtained after executing [c1], and propagate the signal
       generated there.
 
     - Finally, for a loop of the form [WHILE b DO c END], the
@@ -1737,6 +1819,17 @@ Reserved Notation "c1 '/' st '\\' s '/' st'"
 Inductive ceval : com -> state -> status -> state -> Prop :=
   | E_Skip : forall st,
       CSkip / st \\ SContinue / st
+  | E_Break : forall st,
+      CBreak / st \\ SBreak / st
+  | E_Ass : forall st x val,
+      CAss x val / st \\ Scontinue / (t_update st x val)
+  | E_Seq : forall st c1 c2,
+      c1 / st \\
+  | E_IfTrue : forall st b c1 c2,
+      beval st b = true ->
+      c1 / st \\ st'
+  | E_IfFalse
+  | E_While
   (* FILL IN HERE *)
 
   where "c1 '/' st '\\' s '/' st'" := (ceval c1 st s st').
