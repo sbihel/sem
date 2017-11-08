@@ -1381,12 +1381,21 @@ Proof.
   apply E_Seq with (t_update (t_update empty_state X 2) Y 0).
   - (* *) apply E_Ass. reflexivity.
   - (* *)
-  remember (BNot (BEq (AId X) (ANum 0))) as b eqn:Heqb.
-  remember (t_update (t_update empty_state X 2) Y 0) as st eqn:Heqst.
-  destruct (beval st b) eqn:Eqb.
-    + (* *) admit.
-    + (* *) admit.
-Admitted.
+    remember (BNot (BEq (AId X) (ANum 0))) as b eqn:Heqb.
+    remember (t_update (t_update empty_state X 2) Y 0) as st eqn:Heqst.
+    remember (t_update st Y 2) as st' eqn:Heqst'.
+    remember (t_update st' X 1) as st'' eqn:Heqst''.
+    apply E_WhileLoop with (st':=st'').
+    + (* *) subst. reflexivity.
+    + (* *) apply E_Seq with (st':=st'); subst; apply E_Ass; reflexivity.
+    + (* *)
+      remember (t_update (t_update st'' Y 3) X 0) as st''' eqn:Heqst'''.
+      apply E_WhileLoop with (st':=st''').
+      * (* *) subst. reflexivity.
+      * (* *) apply E_Seq with (st':=(t_update st'' Y 3)); subst; apply E_Ass;
+              reflexivity.
+      * (* *) apply E_WhileEnd. subst. reflexivity.
+Qed.
 (** [] *)
 
 
@@ -1513,13 +1522,40 @@ Fixpoint no_whiles (c : com) : bool :=
     while loops.  Then prove its equivalence with [no_whiles]. *)
 
 Inductive no_whilesR: com -> Prop :=
- (* FILL IN HERE *)
+| NSkip : no_whilesR SKIP
+| NAss : forall x val, no_whilesR (x ::= val)
+| NSeq : forall c1 c2,
+    no_whilesR c1 ->
+    no_whilesR c2 ->
+    no_whilesR (c1;; c2)
+| NIf : forall b c1 c2,
+    no_whilesR c1 ->
+    no_whilesR c2 ->
+    no_whilesR (IFB b THEN c1 ELSE c2 FI)
 .
 
 Theorem no_whiles_eqv:
    forall c, no_whiles c = true <-> no_whilesR c.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros c. split.
+  - (* -> *) intros Hwhiles. induction c.
+    + (* *) apply NSkip.
+    + (* *) apply NAss.
+    + (* *) simpl in Hwhiles. apply andb_true_iff in Hwhiles. apply NSeq.
+      * (* *) apply IHc1. apply Hwhiles.
+      * (* *) apply IHc2. apply Hwhiles.
+    + (* *) simpl in Hwhiles. apply andb_true_iff in Hwhiles. apply NIf.
+      * (* *) apply IHc1. apply Hwhiles.
+      * (* *) apply IHc2. apply Hwhiles.
+    + (* *) inversion Hwhiles.
+  - (* <- *) intros HwhilesR. induction HwhilesR; try reflexivity.
+    + (* *) simpl. apply andb_true_iff. split.
+      * (* left *) apply IHHwhilesR1.
+      * (* right *) apply IHHwhilesR2.
+    + (* *) simpl. apply andb_true_iff. split.
+      * (* left *) apply IHHwhilesR1.
+      * (* right *) apply IHHwhilesR2.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars (no_whiles_terminating)  *)
