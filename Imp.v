@@ -1380,14 +1380,12 @@ Proof.
   unfold pup_to_n.
   apply E_Seq with (t_update (t_update empty_state X 2) Y 0).
   - (* *) apply E_Ass. reflexivity.
-  - (* *) admit.
-  (* destruct (BEq (AId X) (ANum 0)) eqn:Eqb. *)
-  (*   + [> <] apply E_WhileEnd.              *)
-  (*   + [> <]                                *)
-  (*   + [> <]                                *)
-  (*   + [> <]                                *)
-  (*   + [> <]                                *)
-  (*   + [> <]                                *)
+  - (* *)
+  remember (BNot (BEq (AId X) (ANum 0))) as b eqn:Heqb.
+  remember (t_update (t_update empty_state X 2) Y 0) as st eqn:Heqst.
+  destruct (beval st b) eqn:Eqb.
+    + (* *) admit.
+    + (* *) admit.
 Admitted.
 (** [] *)
 
@@ -1822,15 +1820,34 @@ Inductive ceval : com -> state -> status -> state -> Prop :=
   | E_Break : forall st,
       CBreak / st \\ SBreak / st
   | E_Ass : forall st x val,
-      CAss x val / st \\ Scontinue / (t_update st x val)
-  | E_Seq : forall st c1 c2,
-      c1 / st \\
-  | E_IfTrue : forall st b c1 c2,
+      CAss x (ANum val) / st \\ SContinue / (t_update st x val)
+  | E_IfTrue : forall st st' b c1 c2 stat,
       beval st b = true ->
-      c1 / st \\ st'
-  | E_IfFalse
-  | E_While
-  (* FILL IN HERE *)
+      c1 / st \\ stat / st' ->
+      CIf b c1 c2 / st \\ stat / st'
+  | E_IfFalse : forall st st' b c1 c2 stat,
+      beval st b = false ->
+      c2 / st \\ stat / st' ->
+      CIf b c1 c2 / st \\ stat / st'
+  | E_SeqBreak : forall st st' c1 c2,
+      c1 / st \\ SBreak / st' ->
+      CSeq c1 c2 / st \\ SBreak / st'
+  | E_SeqCont : forall st st' st'' c1 c2 stat,
+      c1 / st \\ SContinue / st' ->
+      c2 / st' \\ stat / st'' ->
+      CSeq c1 c2 / st \\ stat / st''
+  | E_WhileEnd : forall st b c,
+      beval st b = false ->
+      CWhile b c / st \\ SContinue / st
+  | E_WhileBreak : forall st st' b c,
+      beval st b = true ->
+      c / st \\ SBreak / st' ->
+      CWhile b c / st \\ SContinue / st'
+  | E_WhileLoop : forall st st' st'' b c,
+      beval st b = true ->
+      c / st \\ SContinue / st' ->
+      CWhile b c / st' \\ SContinue / st'' ->
+      CWhile b c / st \\ SContinue / st''
 
   where "c1 '/' st '\\' s '/' st'" := (ceval c1 st s st').
 
@@ -1840,20 +1857,27 @@ Theorem break_ignore : forall c st st' s,
      (BREAK;; c) / st \\ s / st' ->
      st = st'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros c st st' s H. assert (BREAK / st \\ SBreak / st).
+  { apply E_Break. }
+  apply E_SeqBreak with (c2:=c) in H0. (* need ceval_deterministic *)
+Admitted.
 
 Theorem while_continue : forall b c st st' s,
   (WHILE b DO c END) / st \\ s / st' ->
   s = SContinue.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros b c st st' s H. destruct (beval st b); inversion H; reflexivity.
+Qed.
 
 Theorem while_stops_on_break : forall b c st st',
   beval st b = true ->
   c / st \\ SBreak / st' ->
   (WHILE b DO c END) / st \\ SContinue / st'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros b c st st' Hb Hc. apply E_WhileBreak with (b:=b) in Hc.
+  - (* *) apply Hc.
+  - (* *) apply Hb.
+Qed.
 
 (** **** Exercise: 3 stars, advanced, optional (while_break_true)  *)
 Theorem while_break_true : forall b c st st',
@@ -1861,7 +1885,11 @@ Theorem while_break_true : forall b c st st',
   beval st' b = true ->
   exists st'', c / st'' \\ SBreak / st'.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros b c st st' HWhile Hb. inversion HWhile.
+  - (* *) rewrite H2 in Hb. inversion Hb.
+  - (* *) exists st. apply H3.
+  - (* *)
+Admitted.
 
 (** **** Exercise: 4 stars, advanced, optional (ceval_deterministic)  *)
 Theorem ceval_deterministic: forall (c:com) st st1 st2 s1 s2,
@@ -1869,7 +1897,9 @@ Theorem ceval_deterministic: forall (c:com) st st1 st2 s1 s2,
      c / st \\ s2 / st2 ->
      st1 = st2 /\ s1 = s2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros c st st1 st2 s1 s2 H1 H2.
+  destruct s1; destruct s2; split; try reflexivity; admit.
+Admitted.
 
 End BreakImp.
 (** [] *)
