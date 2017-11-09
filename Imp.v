@@ -1752,7 +1752,8 @@ Inductive com : Type :=
   | CAss : id -> aexp -> com
   | CSeq : com -> com -> com
   | CIf : bexp -> com -> com -> com
-  | CWhile : bexp -> com -> com.
+  | CWhile : bexp -> com -> com
+  | CFor : bexp -> com -> com -> com -> com.
 
 Notation "'SKIP'" :=
   CSkip.
@@ -1766,6 +1767,8 @@ Notation "'WHILE' b 'DO' c 'END'" :=
   (CWhile b c) (at level 80, right associativity).
 Notation "'IFB' c1 'THEN' c2 'ELSE' c3 'FI'" :=
   (CIf c1 c2 c3) (at level 80, right associativity).
+Notation "'FOR' cinit ';' b ';' cloop 'DO' cbody 'DONE'" :=
+  (CFor b cinit cbody cloop) (at level 80, right associativity).
 
 (** Next, we need to define the behavior of [BREAK].  Informally,
     whenever [BREAK] is executed in a sequence of commands, it stops
@@ -1884,8 +1887,36 @@ Inductive ceval : com -> state -> status -> state -> Prop :=
       c / st \\ SContinue / st' ->
       CWhile b c / st' \\ SContinue / st'' ->
       CWhile b c / st \\ SContinue / st''
+  | E_ForInit : forall st st' st'' b cinit cbody cloop stat,
+      cinit / st \\ stat / st' ->
+      CFor b cinit cbody cloop / st \\ stat / st''
+  | E_ForLoop : forall st st' st'' st''' b cinit cbody cloop,
+      CFor b cinit cbody cloop / st \\ SContinue / st' ->
+      cloop / st' \\ SContinue / st'' ->
+      beval st'' b = true ->
+      CFor b cinit cbody cloop / st -> SContinue / st'''
+  | E_ForLoopBreak : forall st st' st'' b cinit cbody cloop,
+      CFor b cinit cbody cloop / st \\ SContinue / st' ->
+      cloop / st' \\ SBreak / st'' ->
+      CFor b cinit cbody cloop / st \\ SBreak / st''
+  | E_ForBodyBreak : forall st st' st'' st''' b cinit cbody cloop,
+      CFor b cinit cbody cloop / st \\ SContinue / st' ->
+      cbody / st' \\ SBreak / st'' ->
+      CFor b cinit cbody cloop / st \\ SContinue/ st''
 
   where "c1 '/' st '\\' s '/' st'" := (ceval c1 st s st').
+(** Add C-style [for] loops to the language of commands, update the
+    [ceval] definition to define the semantics of [for] loops, and add
+    cases for [for] loops as needed so that all the proofs in this file
+    are accepted by Coq.
+
+    A [for] loop should be parameterized by (a) a statement executed
+    initially, (b) a test that is run on each iteration of the loop to
+    determine whether the loop should continue, (c) a statement
+    executed at the end of each loop iteration, and (d) a statement
+    that makes up the body of the loop.  (You don't need to worry
+    about making up a concrete Notation for [for] loops, but feel free
+    to play with this too if you like.) *)
 
 (** Now prove the following properties of your definition of [ceval]: *)
 
@@ -1952,7 +1983,24 @@ End BreakImp.
     evaluation of [BAnd] in this manner, and prove that it is
     equivalent to [beval]. *)
 
-(* FILL IN HERE *)
+Fixpoint beval' (st : state) (b : bexp) : bool :=
+  match b with
+  | BTrue       => true
+  | BFalse      => false
+  | BEq a1 a2   => beq_nat (aeval st a1) (aeval st a2)
+  | BLe a1 a2   => leb (aeval st a1) (aeval st a2)
+  | BNot b1     => negb (beval' st b1)
+  | BAnd b1 b2  => if (beval' st b1) then (beval' st b2)
+                                     else false
+  end.
+
+Theorem beval'_is_beval : forall (st : state) (b : bexp),
+  beval' st b = true <-> beval st b = true.
+Proof.
+  intros st b. split.
+  - (* -> *) intros H'. destruct b; try (apply H').
+  - (* <- *) intros H. destruct b; try (apply H).
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, optional (add_for_loop)  *)
@@ -1969,7 +2017,6 @@ End BreakImp.
     about making up a concrete Notation for [for] loops, but feel free
     to play with this too if you like.) *)
 
-(* FILL IN HERE *)
 (** [] *)
 
 (* $Date: 2016-07-14 23:02:35 +0200 (Thu, 14 Jul 2016) $ *)
