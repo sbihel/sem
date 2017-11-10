@@ -1477,7 +1477,15 @@ Proof.
 (** **** Exercise: 3 stars, recommended (XtimesYinZ_spec)  *)
 (** State and prove a specification of [XtimesYinZ]. *)
 
-(* FILL IN HERE *)
+Theorem XtimesYinZ_spec : forall st x y st',
+  st X = x ->
+  st Y = y ->
+  XtimesYinZ / st \\ st' ->
+  st' Z = x * y.
+Proof.
+  intros st x y st' HX HY Heval.
+  inversion Heval. subst. simpl. apply t_update_eq.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, recommended (loop_never_stops)  *)
@@ -1563,7 +1571,25 @@ Qed.
     State and prove a theorem [no_whiles_terminating] that says this. *)
 (** Use either [no_whiles] or [no_whilesR], as you prefer. *)
 
-(* FILL IN HERE *)
+Theorem no_whiles_terminating : forall c st,
+  no_whilesR c -> exists st', c / st \\ st'.
+Proof.
+  intros c. induction c.
+  - (* *) intros st H. exists st. apply E_Skip.
+  - (* *) intros st H. exists (t_update st i (aeval st a)).
+    apply E_Ass. reflexivity.
+  - (* *) intros st H. inversion H.
+    apply IHc1 with (st:=st) in H2. inversion H2.
+    apply IHc2 with (st:=x) in H3. inversion H3.
+    exists x0. apply E_Seq with (st':=x). apply H4. apply H5.
+  - (* *) intros st H. inversion H.
+    apply IHc1 with (st:=st) in H2. inversion H2.
+    apply IHc2 with (st:=st) in H4. inversion H4.
+    destruct (beval st b) eqn:Hb.
+    + (* b true *) exists x. apply E_IfTrue. apply Hb. apply H5.
+    + (* b false *) exists x0. apply E_IfFalse. apply Hb. apply H6.
+  - (* *) intros st H. inversion H.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -1767,7 +1793,7 @@ Notation "'WHILE' b 'DO' c 'END'" :=
   (CWhile b c) (at level 80, right associativity).
 Notation "'IFB' c1 'THEN' c2 'ELSE' c3 'FI'" :=
   (CIf c1 c2 c3) (at level 80, right associativity).
-Notation "'FOR' cinit ';' b ';' cloop 'DO' cbody 'DONE'" :=
+Notation "'FOR' cinit ';' b ';' cloop 'DO' cbody 'END'" :=
   (CFor b cinit cbody cloop) (at level 80, right associativity).
 
 (** Next, we need to define the behavior of [BREAK].  Informally,
@@ -1886,37 +1912,14 @@ Inductive ceval : com -> state -> status -> state -> Prop :=
       beval st b = true ->
       c / st \\ SContinue / st' ->
       CWhile b c / st' \\ SContinue / st'' ->
+      (* ^ Using a general status doesn't seem right because the conclusion is
+       * that it's SContinue all along *)
       CWhile b c / st \\ SContinue / st''
-  | E_ForInit : forall st st' st'' b cinit cbody cloop stat,
-      cinit / st \\ stat / st' ->
-      CFor b cinit cbody cloop / st \\ stat / st''
-  | E_ForLoop : forall st st' st'' st''' b cinit cbody cloop,
-      CFor b cinit cbody cloop / st \\ SContinue / st' ->
-      cloop / st' \\ SContinue / st'' ->
-      beval st'' b = true ->
-      CFor b cinit cbody cloop / st -> SContinue / st'''
-  | E_ForLoopBreak : forall st st' st'' b cinit cbody cloop,
-      CFor b cinit cbody cloop / st \\ SContinue / st' ->
-      cloop / st' \\ SBreak / st'' ->
-      CFor b cinit cbody cloop / st \\ SBreak / st''
-  | E_ForBodyBreak : forall st st' st'' st''' b cinit cbody cloop,
-      CFor b cinit cbody cloop / st \\ SContinue / st' ->
-      cbody / st' \\ SBreak / st'' ->
-      CFor b cinit cbody cloop / st \\ SContinue/ st''
+  | E_For : forall st st' b cinit cbody cloop stat,
+      CSeq cinit (CWhile b (CSeq cbody cloop)) / st \\ stat / st' ->
+      CFor b cinit cbody cloop / st \\ stat / st'
 
   where "c1 '/' st '\\' s '/' st'" := (ceval c1 st s st').
-(** Add C-style [for] loops to the language of commands, update the
-    [ceval] definition to define the semantics of [for] loops, and add
-    cases for [for] loops as needed so that all the proofs in this file
-    are accepted by Coq.
-
-    A [for] loop should be parameterized by (a) a statement executed
-    initially, (b) a test that is run on each iteration of the loop to
-    determine whether the loop should continue, (c) a statement
-    executed at the end of each loop iteration, and (d) a statement
-    that makes up the body of the loop.  (You don't need to worry
-    about making up a concrete Notation for [for] loops, but feel free
-    to play with this too if you like.) *)
 
 (** Now prove the following properties of your definition of [ceval]: *)
 
@@ -1924,10 +1927,10 @@ Theorem break_ignore : forall c st st' s,
      (BREAK;; c) / st \\ s / st' ->
      st = st'.
 Proof.
-  intros c st st' s H. assert (BREAK / st \\ SBreak / st).
-  { apply E_Break. }
-  apply E_SeqBreak with (c2:=c) in H0. (* need ceval_deterministic *)
-Admitted.
+  intros c st st' s H. inversion H.
+  - (* *) inversion H5. reflexivity.
+  - (* *) inversion H2.
+Qed.
 
 Theorem while_continue : forall b c st st' s,
   (WHILE b DO c END) / st \\ s / st' ->
@@ -1952,11 +1955,14 @@ Theorem while_break_true : forall b c st st',
   beval st' b = true ->
   exists st'', c / st'' \\ SBreak / st'.
 Proof.
-  intros b c st st' HWhile Hb. inversion HWhile.
-  - (* *) rewrite H2 in Hb. inversion Hb.
-  - (* *) exists st. apply H3.
-  - (* *)
-Admitted.
+  intros b c st st' HWhile Hb. remember (WHILE b DO c END) as while.
+  induction HWhile; try (inversion Heqwhile).
+  - (* *) rewrite <- H1 in Hb. rewrite Hb in H. inversion H.
+  - (* *) exists st. rewrite <- H2. apply HWhile.
+  - (* *) apply IHHWhile2.
+    + (* *) subst. reflexivity.
+    + (* *) apply Hb.
+Qed.
 
 (** **** Exercise: 4 stars, advanced, optional (ceval_deterministic)  *)
 Theorem ceval_deterministic: forall (c:com) st st1 st2 s1 s2,
@@ -1965,8 +1971,42 @@ Theorem ceval_deterministic: forall (c:com) st st1 st2 s1 s2,
      st1 = st2 /\ s1 = s2.
 Proof.
   intros c st st1 st2 s1 s2 H1 H2.
-  destruct s1; destruct s2; split; try reflexivity; admit.
-Admitted.
+  generalize dependent s2. generalize dependent st2.
+  induction H1.
+  - (* *) intros st2 s2 H2. inversion H2. split; reflexivity.
+  - (* *) intros st2 s2 H2. inversion H2. split; reflexivity.
+  - (* *) intros st2 s2 H2. inversion H2. split; reflexivity.
+  - (* *) intros st2 s2 H2. inversion H2.
+    + (* *) apply IHceval in H9. apply H9.
+    + (* *) rewrite H in H8. inversion H8.
+  - (* *) intros st2 s2 H2. inversion H2.
+    + (* *) rewrite H in H8. inversion H8.
+    + (* *) apply IHceval in H9. apply H9.
+  - (* *) intros st2 s2 H2. inversion H2.
+    + (* *) apply IHceval in H6. apply H6.
+    + (* *) apply IHceval in H3. destruct H3. inversion H8.
+  - (* *) intros st2 s2 H2. inversion H2.
+    + (* *) apply IHceval1 in H5. destruct H5. inversion H6.
+    + (* *) apply IHceval1 in H1. destruct H1. rewrite <- H1 in H6.
+      apply IHceval2 in H6. apply H6.
+  - (* *) intros st2 s2 H2. inversion H2.
+    + (* *) split; reflexivity.
+    + (* *) rewrite H in H3. inversion H3.
+    + (* *) rewrite H in H3. inversion H3.
+  - (* *) intros st2 s2 H2. inversion H2.
+    + (* *) rewrite <- H6 in H7. rewrite H in H7. inversion H7.
+    + (* *) split; try reflexivity. apply IHceval in H8. destruct H8. apply H8.
+    + (* *) split; try reflexivity. apply IHceval in H5. destruct H5.
+      inversion H10.
+  - (* *) intros st2 s2 H2. inversion H2.
+    + (* *) rewrite <- H5 in H6. rewrite H in H6. inversion H6.
+    + (* *) apply IHceval1 in H7. destruct H7. inversion H8.
+    + (* *) apply IHceval1 in H4. destruct H4. rewrite <- H4 in H8.
+      apply IHceval2 in H8. apply H8.
+  - (* *) intros st2 s2 H2. inversion H2. inversion H8.
+    + (* *) subst. apply IHceval in H8. apply H8.
+    + (* *) subst. apply IHceval in H8. apply H8.
+Qed.
 
 End BreakImp.
 (** [] *)
