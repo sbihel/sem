@@ -1793,7 +1793,7 @@ Notation "'WHILE' b 'DO' c 'END'" :=
   (CWhile b c) (at level 80, right associativity).
 Notation "'IFB' c1 'THEN' c2 'ELSE' c3 'FI'" :=
   (CIf c1 c2 c3) (at level 80, right associativity).
-Notation "'FOR' cinit ';' b ';' cloop 'DO' cbody 'END'" :=
+Notation "'FOR' cinit '||' b '||' cloop 'DOF' cbody 'DONE'" :=
   (CFor b cinit cbody cloop) (at level 80, right associativity).
 
 (** Next, we need to define the behavior of [BREAK].  Informally,
@@ -1912,8 +1912,6 @@ Inductive ceval : com -> state -> status -> state -> Prop :=
       beval st b = true ->
       c / st \\ SContinue / st' ->
       CWhile b c / st' \\ SContinue / st'' ->
-      (* ^ Using a general status doesn't seem right because the conclusion is
-       * that it's SContinue all along *)
       CWhile b c / st \\ SContinue / st''
   | E_For : forall st st' b cinit cbody cloop stat,
       CSeq cinit (CWhile b (CSeq cbody cloop)) / st \\ stat / st' ->
@@ -2008,7 +2006,6 @@ Proof.
     + (* *) subst. apply IHceval in H8. apply H8.
 Qed.
 
-End BreakImp.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (short_circuit)  *)
@@ -2057,6 +2054,22 @@ Qed.
     about making up a concrete Notation for [for] loops, but feel free
     to play with this too if you like.) *)
 
+(* Definition sumFor : com :=                                               *)
+(*   X ::= (ANum 0);;                                                       *)
+(*   FOR (Y ::= (ANum 1)) ||                                                *)
+(*       (Ble (AId Y) (AId Z)) ||                                           *)
+(*       (Y ::= APlus (AId Y) (ANum 1)) DOF                                 *)
+(*     X ::= APlus (AId X) (AId Y)                                          *)
+(*   DONE.                                                                  *)
+
+(* Theorem sum_2 :                                                          *)
+(*   sumFor / (t_update empty_state Z 2) \\                                 *)
+(*     t_update (t_update (t_update (t_update (t_update (t_update (t_update *)
+(*     empty_state Z 2) X 0) Y 1) X 1) Y 2) X 3) Y 3.                       *)
+(* Proof.                                                                   *)
+
+
+End BreakImp.
 (** [] *)
 
 (* $Date: 2016-07-14 23:02:35 +0200 (Thu, 14 Jul 2016) $ *)
