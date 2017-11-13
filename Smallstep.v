@@ -196,7 +196,8 @@ Example test_step_2 :
           (C 2)
           (C (0 + 3))).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply ST_Plus2. apply ST_Plus2. apply ST_PlusConstConst.
+Qed.
 (** [] *)
 
 End SimpleArith1.
@@ -451,7 +452,21 @@ Inductive step : tm -> tm -> Prop :=
 Theorem step_deterministic :
   deterministic step.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold deterministic. intros x y1 y2 Hy1 Hy2. generalize dependent y2.
+  induction Hy1.
+  - (* ST_PlusConstConst *) intros y2 Hy2. inversion Hy2.
+    + (* ST_PlusConstConst *) reflexivity.
+    + (* ST_Plus1 *) inversion H2.
+    + (* ST_Plus2 *) inversion H3.
+  - (* ST_Plus1 *) intros y2 Hy2. inversion Hy2.
+    + (* ST_PlusConstConst *) rewrite <- H0 in Hy1. inversion Hy1.
+    + (* ST_Plus1 *) rewrite <- (IHHy1 t1'0). reflexivity. apply H2.
+    + (* ST_Plus2 *) inversion H1. rewrite <- H4 in Hy1. inversion Hy1.
+  - (* ST_Plus2 *) intros y2 Hy2. inversion Hy2.
+    + (* ST_PlusConstConst *) rewrite <- H2 in Hy1. inversion Hy1.
+    + (* ST_Plus1 *) inversion H. rewrite <- H4 in H3. inversion H3.
+    + (* ST_Plus2 *) rewrite <- (IHHy1 t2'0). reflexivity. apply H4.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -592,7 +607,11 @@ Inductive step : tm -> tm -> Prop :=
 Lemma value_not_same_as_normal_form :
   exists v, value v /\ ~ normal_form step v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (P (C 1) (C 2)). split.
+  - (* *) apply v_funny.
+  - (* *) unfold normal_form. unfold not. intros H. apply H. exists (C (1+2)).
+    constructor.
+Qed.
 (** [] *)
 End Temp1.
 
@@ -625,7 +644,11 @@ Inductive step : tm -> tm -> Prop :=
 Lemma value_not_same_as_normal_form :
   exists v, value v /\ ~ normal_form step v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (C 4). split.
+  - (* *) apply v_const.
+  - (* *) unfold normal_form. unfold not. intros H. apply H.
+    exists (P (C 4) (C 0)). apply ST_Funny.
+Qed.
 
 (** [] *)
 End Temp2.
@@ -659,7 +682,11 @@ Inductive step : tm -> tm -> Prop :=
 Lemma value_not_same_as_normal_form :
   exists t, ~ value t /\ normal_form step t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (P (C 1) (P (C 2) (C 3))). split.
+  - (* -> *) unfold not. intros H. inversion H.
+  - (* <- *) unfold normal_form. unfold not. intros H. destruct H.
+    inversion H. inversion H3.
+Qed.
 (** [] *)
 
 End Temp3.
@@ -702,8 +729,11 @@ Inductive step : tm -> tm -> Prop :=
 
 Definition bool_step_prop1 :=
   tfalse ==> tfalse.
-
-(* FILL IN HERE *)
+Theorem bool_step_prop1th :
+  ~ bool_step_prop1.
+Proof.
+  unfold bool_step_prop1. unfold not. intros H. inversion H.
+Qed.
 
 Definition bool_step_prop2 :=
      tif
@@ -712,8 +742,11 @@ Definition bool_step_prop2 :=
        (tif tfalse tfalse tfalse)
   ==>
      ttrue.
-
-(* FILL IN HERE *)
+Theorem bool_step_prop2th :
+  ~ bool_step_prop2.
+Proof.
+  unfold bool_step_prop2. unfold not. intros H. inversion H.
+Qed.
 
 Definition bool_step_prop3 :=
      tif
@@ -725,8 +758,11 @@ Definition bool_step_prop3 :=
        ttrue
        (tif ttrue ttrue ttrue)
        tfalse.
-
-(* FILL IN HERE *)
+Theorem bool_step_prop3th :
+  bool_step_prop3.
+Proof.
+  unfold bool_step_prop3. apply ST_If. apply ST_IfTrue.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (progress_bool)  *)
@@ -736,7 +772,10 @@ Definition bool_step_prop3 :=
 Theorem strong_progress : forall t,
   value t \/ (exists t', t ==> t').
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t. induction t.
+  - (* ttrue *) left. apply v_true.
+  - (* tfalse *) left. apply v_false.
+  - (* tif t1 t2 t3 *) Admitted.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (step_deterministic)  *)
