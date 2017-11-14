@@ -775,14 +775,31 @@ Proof.
   intros t. induction t.
   - (* ttrue *) left. apply v_true.
   - (* tfalse *) left. apply v_false.
-  - (* tif t1 t2 t3 *) Admitted.
+  - (* tif t1 t2 t3 *) right. inversion IHt1.
+    + (* *) inversion H.
+      * (* *) exists t2. apply ST_IfTrue.
+      * (* *) exists t3. apply ST_IfFalse.
+    + (* *) inversion H. exists (tif x t2 t3). apply ST_If. apply H0.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (step_deterministic)  *)
 Theorem step_deterministic :
   deterministic step.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold deterministic. intros x y1 y2 Hy1 Hy2. generalize dependent y2.
+  induction Hy1.
+  - (* ST_IfTrue *) intros y2 Hy2. inversion Hy2.
+    + (* *) reflexivity.
+    + (* *) inversion H3.
+  - (* ST_IfFalse *) intros y2 Hy2. inversion Hy2.
+    + (* *) reflexivity.
+    + (* *) inversion H3.
+  - (* ST_If *) intros y2 Hy2. inversion Hy2.
+    + (* *) subst. inversion Hy1.
+    + (* *) subst. inversion Hy1.
+    + (* *) subst. apply IHHy1 in H3. subst. reflexivity.
+Qed.
 (** [] *)
 
 Module Temp5.
@@ -817,7 +834,8 @@ Inductive step : tm -> tm -> Prop :=
   | ST_If : forall t1 t1' t2 t3,
       t1 ==> t1' ->
       tif t1 t2 t3 ==> tif t1' t2 t3
-  (* FILL IN HERE *)
+  | ST_ShortCircuit : forall t1 t2,
+      tif t1 t2 t2 ==> t2
 
   where " t '==>' t' " := (step t t').
 
@@ -832,7 +850,8 @@ Definition bool_step_prop4 :=
 Example bool_step_prop4_holds :
   bool_step_prop4.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold bool_step_prop4. apply ST_ShortCircuit.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (properties_of_altered_step)  *)
@@ -843,9 +862,15 @@ Proof.
 
     - Is the [step] relation still deterministic?  Write yes or no and
       briefly (1 sentence) explain your answer.
+      NO,
 
       Optional: prove your answer correct in Coq.
 *)
+Theorem step_deterministic :
+  ~ deterministic step.
+Proof.
+  unfold not. unfold deterministic. intros H.
+Admitted.
 
 (* FILL IN HERE *)
 (**
@@ -1008,7 +1033,8 @@ Proof.
 Lemma test_multistep_2:
   C 3 ==>* C 3.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply multi_refl.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, optional (test_multistep_3)  *)
@@ -1017,7 +1043,8 @@ Lemma test_multistep_3:
    ==>*
       P (C 0) (C 3).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply multi_refl.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars (test_multistep_4)  *)
@@ -1032,7 +1059,11 @@ Lemma test_multistep_4:
         (C 0)
         (C (2 + (0 + 3))).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply multi_step. apply ST_Plus2. apply v_const.
+  apply ST_Plus2. apply v_const. apply ST_PlusConstConst.
+  eapply multi_step. apply ST_Plus2. apply v_const.
+  apply ST_PlusConstConst. apply multi_refl.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1063,7 +1094,8 @@ Proof.
   inversion P1 as [P11 P12]; clear P1.
   inversion P2 as [P21 P22]; clear P2.
   generalize dependent y2.
-  (* FILL IN HERE *) Admitted.
+
+  Admitted.
 (** [] *)
 
 (** Indeed, something stronger is true for this language (though not
@@ -1100,7 +1132,14 @@ Lemma multistep_congr_2 : forall t1 t2 t2',
      t2 ==>* t2' ->
      P t1 t2 ==>* P t1 t2'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t1 t2 t2' Hval Ht2. induction Ht2.
+  - (* multi_refl *) apply multi_refl.
+  - (* multi_step *) apply multi_step with (P t1 y).
+    + (* *) apply ST_Plus2.
+      * (* *) apply Hval.
+      * (* *) apply H.
+    + (* *) apply IHHt2.
+Qed.
 (** [] *)
 
 (** With these lemmas in hand, the main proof is a straightforward
