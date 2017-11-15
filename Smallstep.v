@@ -1282,14 +1282,37 @@ Proof.
   intros t n Htn. induction Htn.
   - (* *) apply multi_refl.
   - (* *) apply multistep_congr_1 with (t2:=t2) in IHHtn1.
-     apply multistep_congr_2 with (t1:=(C n1)) in IHHtn2.
-Admitted.
+    apply multi_trans with (y:=(P (C n1) t2)).
+    { apply IHHtn1. }
+    apply multistep_congr_2 with (t1:=(C n1)) in IHHtn2.
+    apply multi_trans with (y:=(P (C n1) (C n2))).
+    { apply IHHtn2. }
+    eapply multi_step.
+    apply ST_PlusConstConst. apply multi_refl.
+    { apply v_const. }
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (eval__multistep_inf)  *)
 (** Write a detailed informal version of the proof of [eval__multistep].
 
-(* FILL IN HERE *)
+  We have [t \\ n] and we want to show [t ==>* C n].
+
+  We do an induction over our hypotheses [t \\ n].
+
+  - The first case is when t = C n, so our goal is already reached.
+
+  - The other case is when t = P t1 t2 and n = n1 + n2 with
+    [t1 \\ n1] and [t2 \\ n2]. We have as induction hypotheses that
+    [t1 ==>* C n1] and [t2 ==>* C n2]. We want to show that
+    [P t1 t2 ==>* C (n1 + n2)].
+
+    We apply congruence lemmas to our induction hypotheses and end up with
+    [P t1 t2 ==>* P (C n1) t2] and [P (C n1) t2 ==>* P (C n1) (C n2)].
+    With these new hypotheses we can cut our goal with [multi_trans] and now
+    have as goal that [P (C n1) (C n2) ==>* C (n1 + n2)]. By inserting a single
+    step with [multi_step] we can apply [ST_PlusConstConst] and now just need
+    reflexivity.
 []
 *)
 
@@ -1303,7 +1326,15 @@ Lemma step__eval : forall t t' n,
      t \\ n.
 Proof.
   intros t t' n Hs. generalize dependent n.
-  (* FILL IN HERE *) Admitted.
+  induction Hs.
+  - (* *) intros n Hn. inversion Hn. apply E_Plus; apply E_Const.
+  - (* *) intros n Hn. inversion Hn. subst.  apply E_Plus.
+    + (* *) apply (IHHs n1) in H1. apply H1.
+    + (* *) apply H3.
+  - (* *) intros n Hn. inversion Hn. subst. apply E_Plus.
+    + (* *) apply H2.
+    + (* *) apply (IHHs n2) in H4. apply H4.
+Qed.
 (** [] *)
 
 (** The fact that small-step reduction implies big-step evaluation is
@@ -1319,7 +1350,19 @@ Proof.
 Theorem multistep__eval : forall t t',
   normal_form_of t t' -> exists n, t' = C n /\ t \\ n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t t' Hnrml. unfold normal_form_of in Hnrml. destruct Hnrml as [H0 H1].
+  unfold step_normal_form in H1.
+  induction H0.
+  - (* *) apply nf_is_value in H1. inversion H1. exists n. split.
+    + (* *) reflexivity.
+    + (* *) apply E_Const.
+  - (* *) apply IHmulti in H1. destruct H1. destruct H1.
+    exists x0. split.
+    + (* *) apply H1.
+    + (* *) apply step__eval with (t':=y).
+      * (* *) apply H.
+      * (* *) apply H2.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1335,7 +1378,19 @@ Proof.
 Theorem evalF_eval : forall t n,
   evalF t = n <-> t \\ n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t n. split.
+  - (* -> *) generalize dependent n.
+    induction t; intros n0 Heval; rewrite <- Heval.
+    + (* *) simpl. apply E_Const.
+    + (* *) simpl. apply E_Plus.
+      * (* *) apply IHt1. reflexivity.
+      * (* *) apply IHt2. reflexivity.
+  - (* <- *) generalize dependent n.
+    induction t; intros n0 Heval.
+    + (* *) simpl. inversion Heval. reflexivity.
+    + (* *) simpl. inversion Heval. apply IHt1 in H1. apply IHt2 in H3.
+      subst. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars (combined_properties)  *)
@@ -1386,8 +1441,43 @@ Inductive step : tm -> tm -> Prop :=
       value or can take a step.
 
     Prove or disprove these two properties for the combined language. *)
+Theorem step_deterministic :
+  deterministic step.
+Proof.
+  unfold deterministic. intros x y1 y2 Hy1 Hy2. generalize dependent y2.
+  induction Hy1; intros y2 Hy2.
+  - (* ST_PlusConstConst *)
+    inversion Hy2; subst; try solve_by_invert; try reflexivity.
+  - (* ST_Plus1 *) inversion Hy2; subst.
+    + (* *) inversion Hy1.
+    + (* *) apply IHHy1 in H2. subst. reflexivity.
+    + (* *) inversion H1; subst; try solve_by_invert.
+  - (* ST_Plus2 *) inversion Hy2; subst.
+    + (* *) inversion Hy1.
+    + (* *) inversion H3; subst; try solve_by_invert.
+    + (* *) apply IHHy1 in H4. subst. reflexivity.
+  - (* ST_IfTrue *) inversion Hy2.
+    + (* *) reflexivity.
+    + (* *) inversion H3.
+  - (* ST_IfFalse *) inversion Hy2.
+    + (* *) reflexivity.
+    + (* *) inversion H3.
+  - (* ST_If *) inversion Hy2; subst.
+    + (* *) inversion Hy1.
+    + (* *) inversion Hy1.
+    + (* *) apply IHHy1 in H3. subst. reflexivity.
+Qed.
 
-(* FILL IN HERE *)
+Theorem strong_progress: exists t,
+  ~ (value t \/  (exists t', t ==> t')).
+Proof.
+  exists (P ttrue ttrue). unfold not. intros H. inversion H.
+  - (* *) inversion H0.
+  - (* *) inversion H0. inversion H1.
+    + (* *) inversion H5.
+    + (* *) inversion H6.
+Qed.
+
 (** [] *)
 
 End Combined.
