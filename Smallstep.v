@@ -862,7 +862,8 @@ Qed.
 
     - Is the [step] relation still deterministic?  Write yes or no and
       briefly (1 sentence) explain your answer.
-      NO,
+      NO, e.g. [tif ttrue t1 t1] has 2 different possible steps, ST_IfTrue or
+      ST_ShortCircuit
 
       Optional: prove your answer correct in Coq.
 *)
@@ -870,24 +871,40 @@ Theorem step_deterministic :
   ~ deterministic step.
 Proof.
   unfold not. unfold deterministic. intros H.
-Admitted.
+  assert (tif ttrue ttrue ttrue = ttrue).
+  { apply H with (tif (tif ttrue ttrue ttrue) ttrue ttrue);
+    repeat constructor. }
+  inversion H0.
+Qed.
 
-(* FILL IN HERE *)
 (**
    - Does a strong progress theorem hold? Write yes or no and
      briefly (1 sentence) explain your answer.
+     YES, it is only a shortcircuit, it only accelerates progress.
 
      Optional: prove your answer correct in Coq.
 *)
+Theorem strong_progress : forall t,
+  value t \/ (exists t', t ==> t').
+Proof.
+  induction t.
+  - (* ST_IfTrue *) left. apply v_true.
+  - (* ST_IfFalse *) left. apply v_false.
+  - (* ST_If *) right. inversion IHt1.
+    + (* *) inversion H.
+      * (* t1 = ttrue *) exists t2. apply ST_IfTrue.
+      * (* t1 = tfalse *) exists t3. apply ST_IfFalse.
+    + (* *) inversion H. exists (tif x t2 t3). apply ST_If. apply H0.
+Qed.
 
-(* FILL IN HERE *)
 (**
    - In general, is there any way we could cause strong progress to
      fail if we took away one or more constructors from the original
      step relation? Write yes or no and briefly (1 sentence) explain
      your answer.
+     YES, e.g. without ST_If we get stuck for
+     [tif (tif ttrue ttrue ttrue) ttrue tfalse].
 
-(* FILL IN HERE *)
 *)
 (** [] *)
 
@@ -1095,7 +1112,23 @@ Proof.
   inversion P2 as [P21 P22]; clear P2.
   generalize dependent y2.
 
-  Admitted.
+  induction P11.
+  - (* *) intros y2 P21 P22.
+    unfold step_normal_form in *. unfold normal_form in *. unfold not in *.
+    inversion P21.
+    + (* *) reflexivity.
+    + (* *) exfalso. apply P12. exists y. apply H.
+  - (* *) intros y2 P21 P22.
+    unfold step_normal_form in *. unfold normal_form in *. unfold not in *.
+    apply IHP11.
+    + (* *) apply P12.
+    + (* *) inversion P21.
+      * (* *) subst. exfalso. apply P22. exists y. apply H.
+      * (* *) subst. assert (y0 = y).
+        { eapply step_deterministic. apply H0. apply H. }
+        subst. apply H1.
+    + (* *) apply P22.
+Qed.
 (** [] *)
 
 (** Indeed, something stronger is true for this language (though not
@@ -1246,7 +1279,11 @@ Theorem eval__multistep : forall t n,
     includes [==>]. *)
 
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t n Htn. induction Htn.
+  - (* *) apply multi_refl.
+  - (* *) apply multistep_congr_1 with (t2:=t2) in IHHtn1.
+     apply multistep_congr_2 with (t1:=(C n1)) in IHHtn2.
+Admitted.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (eval__multistep_inf)  *)
