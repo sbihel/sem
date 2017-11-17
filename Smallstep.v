@@ -1298,16 +1298,16 @@ Qed.
 
   We have [t \\ n] and we want to show [t ==>* C n].
 
-  We do an induction over our hypotheses [t \\ n].
+  We do an induction over our hypothesis [t \\ n].
 
   - The first case is when t = C n, so our goal is already reached.
 
   - The other case is when t = P t1 t2 and n = n1 + n2 with
-    [t1 \\ n1] and [t2 \\ n2]. We have as induction hypotheses that
+    [t1 \\ n1] and [t2 \\ n2]. We have as induction hypothesis that
     [t1 ==>* C n1] and [t2 ==>* C n2]. We want to show that
     [P t1 t2 ==>* C (n1 + n2)].
 
-    We apply congruence lemmas to our induction hypotheses and end up with
+    We apply congruence lemmas to our induction hypothesis and end up with
     [P t1 t2 ==>* P (C n1) t2] and [P (C n1) t2 ==>* P (C n1) (C n2)].
     With these new hypotheses we can cut our goal with [multi_trans] and now
     have as goal that [P (C n1) (C n2) ==>* C (n1 + n2)]. By inserting a single
@@ -1796,7 +1796,24 @@ Lemma par_body_n__Sn : forall n st,
   st X = n /\ st Y = 0 ->
   par_loop / st ==>* par_loop / (t_update st X (S n)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n st [HX HY]. unfold par_loop.
+  eapply multi_step. apply CS_Par2. apply CS_While.
+  eapply multi_step. apply CS_Par2. apply CS_IfStep. apply BS_Eq1.
+    apply AS_Id.
+  eapply multi_step. apply CS_Par2. apply CS_IfStep.
+    rewrite HY. apply BS_Eq.
+  eapply multi_step. apply CS_Par2.
+     simpl. apply CS_IfTrue.
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep. apply CS_AssStep.
+    apply AS_Plus1. apply AS_Id.
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep. apply CS_AssStep.
+    rewrite HX. apply AS_Plus.
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep.
+    apply CS_Ass.
+  eapply multi_step. apply CS_Par2.
+    apply CS_SeqFinish.
+  rewrite Nat.add_1_r. apply multi_refl.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional  *)
@@ -1805,7 +1822,18 @@ Lemma par_body_n : forall n st,
   exists st',
     par_loop / st ==>*  par_loop / st' /\ st' X = n /\ st' Y = 0.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n st [HX HY]. induction n as [| n' IHn'].
+  - (* n = 0 *) exists st. split.
+    + (* *) apply multi_refl.
+    + (* *) rewrite HX. rewrite HY. split; reflexivity.
+  - (* n = S n' *) destruct IHn' as [st'' H].
+    exists (t_update st'' X (S n')). split.
+    + (* *) destruct H as [H0 H1]. apply par_body_n__Sn in H1.
+      apply multi_trans with (y:=(par_loop, st'')); assumption.
+    + (* *) split.
+      * (* *) unfold t_update. reflexivity.
+      * (* *) unfold t_update. simpl. destruct H as [H0 [H1 H2]]. apply H2.
+Qed.
 (** [] *)
 
 (** ... the above loop can exit with [X] having any value
@@ -1877,13 +1905,16 @@ Definition stack_multistep st := multi (stack_step st).
     State what it means for the compiler to be correct according to
     the stack machine small step semantics and then prove it. *)
 
-Definition compiler_is_correct_statement : Prop 
-  (* REPLACE THIS LINE WITH   := _your_definition_ . *). Admitted.
+Definition compiler_is_correct_statement : Prop :=
+  forall (st : state) (e : aexp) (stck : stack),
+  s_execute st stck (s_compile e) = ( aeval st e ) :: stck.
 
 
 Theorem compiler_is_correct : compiler_is_correct_statement.
 Proof.
-(* FILL IN HERE *) Admitted.
+  unfold compiler_is_correct_statement. intros st e stck.
+  generalize dependent stck. induction e; try reflexivity.
+Admitted.
 (** [] *)
 
 (** $Date: 2016-07-13 18:41:41 +0200 (Mer, 13 jul 2016) $ *)
