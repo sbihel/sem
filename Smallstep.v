@@ -1906,14 +1906,20 @@ Definition stack_multistep st := multi (stack_step st).
     the stack machine small step semantics and then prove it. *)
 
 Definition compiler_is_correct_statement : Prop :=
-  forall (st : state) (e : aexp) (stck : stack),
-  s_execute st stck (s_compile e) = ( aeval st e ) :: stck.
+  forall e st stk p,
+  stack_multistep st ((s_compile e) ++ p, stk) (p, aeval st e :: stk).
 
 
 Theorem compiler_is_correct : compiler_is_correct_statement.
 Proof.
-  unfold compiler_is_correct_statement. intros st e stck.
-  generalize dependent stck. induction e; try reflexivity.
+  unfold compiler_is_correct_statement. intros e st stk p.
+  generalize dependent stk. generalize dependent p.
+  induction e; intros p stk; simpl.
+  - (* *) eapply multi_step. apply SS_Push. apply multi_refl.
+  - (* *) eapply multi_step. apply SS_Load. apply multi_refl.
+  - (* *) rewrite <- 2?app_assoc. admit.
+  - (* *) admit.
+  - (* *) admit.
 Admitted.
 (** [] *)
 
