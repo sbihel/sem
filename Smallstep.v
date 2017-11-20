@@ -1915,12 +1915,24 @@ Proof.
   unfold compiler_is_correct_statement. intros e st stk p.
   generalize dependent stk. generalize dependent p.
   induction e; intros p stk; simpl.
-  - (* *) eapply multi_step. apply SS_Push. apply multi_refl.
-  - (* *) eapply multi_step. apply SS_Load. apply multi_refl.
-  - (* *) rewrite <- 2?app_assoc. admit.
-  - (* *) admit.
-  - (* *) admit.
-Admitted.
+  - (* SS_Push *) eapply multi_step. apply SS_Push. apply multi_refl.
+  - (* SS_Load *) eapply multi_step. apply SS_Load. apply multi_refl.
+  - (* SS_Plus *) rewrite <- 2?app_assoc.
+    eapply multi_trans. apply IHe1.
+    eapply multi_trans. apply IHe2.
+    eapply multi_step. simpl. apply SS_Plus.
+    apply multi_refl.
+  - (* SS_Minus *) rewrite <- 2?app_assoc.
+    eapply multi_trans. apply IHe1.
+    eapply multi_trans. apply IHe2.
+    eapply multi_step. simpl. apply SS_Minus.
+    apply multi_refl.
+  - (* SS_Mult *) rewrite <- 2?app_assoc.
+    eapply multi_trans. apply IHe1.
+    eapply multi_trans. apply IHe2.
+    eapply multi_step. simpl. apply SS_Mult.
+    apply multi_refl.
+Qed.
 (** [] *)
 
 (** $Date: 2016-07-13 18:41:41 +0200 (Mer, 13 jul 2016) $ *)
