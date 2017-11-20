@@ -182,7 +182,13 @@ Hint Unfold stuck.
 Example some_term_is_stuck :
   exists t, stuck t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (tsucc ttrue). unfold stuck. unfold step_normal_form. unfold not.
+  split.
+  - (* *) intros. destruct H. inversion H. inversion H1.
+  - (* *) unfold value. intros. destruct H.
+    + (* *) inversion H.
+    + (* *) inversion H. inversion H1.
+Qed.
 (** [] *)
 
 (** However, although values and normal forms are not the same in this
@@ -194,7 +200,18 @@ Proof.
 Lemma value_is_nf : forall t,
   value t -> step_normal_form t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t H. unfold normal_form.
+  inversion H.
+  - (* *) intro contra. inversion contra as [t' P].
+    inversion H0; subst; inversion P.
+  - (* *) unfold not. intros contra. inversion contra as [t' P]. inversion H0.
+    + (* *) subst. inversion P.
+    + (* *) induction H0; subst.
+      * (* t0 = tzero *) inversion P.
+      * (* *) apply IHnvalue; clear IHnvalue.
+        -- (* *) unfold value. right. assumption.
+        -- (* *) inversion P. exists t1'. assumption.
+        -- (* *) inversion P. subst. Admitted.
 
 (** (Hint: You will reach a point in this proof where you need to
     use an induction to reason about a term that is known to be a
