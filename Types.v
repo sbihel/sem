@@ -202,16 +202,14 @@ Lemma value_is_nf : forall t,
 Proof.
   intros t H. unfold normal_form.
   inversion H.
-  - (* *) intro contra. inversion contra as [t' P].
+  - (* *) intros contra. inversion contra as [t' P].
     inversion H0; subst; inversion P.
-  - (* *) unfold not. intros contra. inversion contra as [t' P]. inversion H0.
-    + (* *) subst. inversion P.
-    + (* *) induction H0; subst.
-      * (* t0 = tzero *) inversion P.
-      * (* *) apply IHnvalue; clear IHnvalue.
-        -- (* *) unfold value. right. assumption.
-        -- (* *) inversion P. exists t1'. assumption.
-        -- (* *) inversion P. subst. Admitted.
+  - (* *) intros contra. induction H0; inversion contra as [t' P].
+    + (* *) inversion P.
+    + (* *) inversion P. apply IHnvalue.
+      * (* *) unfold value. right. apply H0.
+      * (* *) exists t1'. apply H2.
+Qed.
 
 (** (Hint: You will reach a point in this proof where you need to
     use an induction to reason about a term that is known to be a
@@ -229,7 +227,28 @@ Proof.
 Theorem step_deterministic:
   deterministic step.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  unfold deterministic. intros x y1 y2 Hy1 Hy2. generalize dependent y2.
+  induction Hy1; intros y2 Hy2.
+  - (* *) inversion Hy2; try reflexivity. subst. inversion H3.
+  - (* *) inversion Hy2; try reflexivity. subst. inversion H3.
+  - (* *) inversion Hy2; subst.
+    + (* *) inversion Hy1.
+    + (* *) inversion Hy1.
+    + (* *) apply IHHy1 in H3. subst. reflexivity.
+  - (* *) inversion Hy2. subst. apply IHHy1 in H0. subst. reflexivity.
+  - (* *) admit.
+  - (* *) admit.
+  - (* *) inversion Hy2; subst.
+    + (* *) inversion Hy1.
+    + (* *) admit.
+    + (* *) apply IHHy1 in H0. subst. reflexivity.
+  - (* *) admit.
+  - (* *) admit.
+  - (* *) inversion Hy2; subst.
+    + (* *) inversion Hy1.
+    + (* *) admit.
+    + (* *) apply IHHy1 in H0. subst. reflexivity.
+Admitted.
 (** [] *)
 
 (* ================================================================= *)
@@ -336,7 +355,8 @@ Example succ_hastype_nat__hastype_nat : forall t,
   |- tsucc t \in TNat ->
   |- t \in TNat.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t H. inversion H. apply H1.
+Qed.
 (** [] *)
 
 (* ----------------------------------------------------------------- *)
@@ -395,7 +415,28 @@ Proof with auto.
     + (* t1 can take a step *)
       inversion H as [t1' H1].
       exists (tif t1' t2 t3)...
-  (* FILL IN HERE *) Admitted.
+
+  - (* T_Succ *) inversion IHHT; clear IHHT.
+    + (* t1 is a value *) left. apply (nat_canonical t1 HT) in H.
+      unfold value. right. apply nv_succ. apply H.
+    + (* t1 can take a step *) right. destruct H as [t' P]. exists (tsucc t').
+      apply ST_Succ. apply P.
+
+  - (* T_Pred *) right. inversion IHHT; clear IHHT.
+    + (* t1 is a value *) apply (nat_canonical t1 HT) in H. destruct H.
+      * (* t = tzero *) exists tzero. apply ST_PredZero.
+      * (* t = tsucc t' *) exists t. apply ST_PredSucc. apply H.
+    + (* t1 can take a step *) destruct H as [t' P].
+      exists (tpred t'). apply ST_Pred. apply P.
+
+  - (* T_Iszero *) right. inversion IHHT; clear IHHT.
+    + (* t1 is a value *) apply (nat_canonical t1 HT) in H.
+      destruct H.
+      * (* t = tzero *) exists ttrue. apply ST_IszeroZero.
+      * (* t = tsucc t' *) exists tfalse. apply ST_IszeroSucc. apply H.
+    + (* t1 can take a step *) destruct H as [t' P].
+      exists (tiszero t'). apply ST_Iszero. apply P.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (finish_progress_informal)  *)
@@ -441,6 +482,7 @@ Proof with auto.
 
       - The single-step reduction relation is a _total_ function.
 
+(* FILL IN HERE *)
 *)
 (** [] *)
 
@@ -474,7 +516,20 @@ Proof with auto.
       + (* ST_IfFalse *) assumption.
       + (* ST_If *) apply T_If; try assumption.
         apply IHHT1; assumption.
-    (* FILL IN HERE *) Admitted.
+
+    - (* T_Succ *) inversion HE. subst. apply IHHT in H0. auto.
+
+    - (* T_Pred *) inversion HE; subst; clear HE.
+      + (* *) assumption.
+      + (* *) inversion HT. assumption.
+      + (* *) apply IHHT in H0. auto.
+
+    - (* T_Iszero *) inversion HE; subst; clear HE.
+      + (* *) auto.
+      + (* *) auto.
+      + (* *) auto.
+(* TODO redo *)
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (finish_preservation_informal)  *)
@@ -520,7 +575,19 @@ Theorem preservation' : forall t t' T,
   t ==> t' ->
   |- t' \in T.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros t t' T HT HE. generalize dependent T.
+  induction HE; intros T HT.
+  - (* *) inversion HT. assumption.
+  - (* *) inversion HT. assumption.
+  - (* *) inversion HT. apply IHHE in H2. apply T_If; assumption.
+  - (* *) inversion HT. apply IHHE in H0. apply T_Succ; assumption.
+  - (* *) inversion HT. assumption.
+  - (* *) inversion HT. inversion H1. assumption.
+  - (* *) inversion HT. apply IHHE in H0. apply T_Pred; assumption.
+  - (* *) inversion HT. apply T_True.
+  - (* *) inversion HT. apply T_False.
+  - (* *) inversion HT. apply IHHE in H0. apply T_Iszero; assumption.
+Qed.
 (** [] *)
 
 (** The preservation theorem is often called _subject reduction_,
@@ -636,7 +703,8 @@ Theorem normalize_ex : exists e',
   (AMult (ANum 3) (AMult (ANum 2) (ANum 1))) / empty_state
   ==>a* e'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply ex_intro. normalize.
+Qed.
 
 (** [] *)
 
