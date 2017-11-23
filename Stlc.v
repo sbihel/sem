@@ -578,13 +578,28 @@ Lemma step_example5 :
        (tapp (tapp idBBBB idBB) idB)
   ==>* idB.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply multi_step.
+    apply ST_App1. apply ST_AppAbs. constructor.
+  simpl.
+  eapply multi_step.
+    apply ST_AppAbs. constructor.
+  simpl.
+  apply multi_refl.
+Qed.
+
 
 Lemma step_example5_with_normalize :
        (tapp (tapp idBBBB idBB) idB)
   ==>* idB.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply multi_step.
+    apply ST_App1. apply ST_AppAbs. constructor.
+  simpl.
+  eapply multi_step.
+    apply ST_AppAbs. constructor.
+  simpl.
+  apply multi_refl.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -719,7 +734,11 @@ Example typing_example_2_full :
           (tapp (tvar y) (tapp (tvar y) (tvar x))))) \in
     (TArrow TBool (TArrow (TArrow TBool TBool) TBool)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply T_Abs. apply T_Abs.
+  eapply T_App. apply T_Var. auto using update_eq.
+  eapply T_App. apply T_Var. auto using update_eq.
+  apply T_Var. auto using update_eq.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars (typing_example_3)  *)

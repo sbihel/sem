@@ -236,13 +236,15 @@ Proof with eauto.
     + (* *) inversion Hy1.
     + (* *) apply IHHy1 in H3. subst. reflexivity.
   - (* *) inversion Hy2. subst. apply IHHy1 in H0. subst. reflexivity.
-  - (* *) admit.
+  - (* *) induction y2; try reflexivity; try (inversion Hy2).
+    subst. inversion H1.
   - (* *) admit.
   - (* *) inversion Hy2; subst.
     + (* *) inversion Hy1.
     + (* *) admit.
     + (* *) apply IHHy1 in H0. subst. reflexivity.
-  - (* *) admit.
+  - (* *) induction y2; try reflexivity; try inversion Hy2.
+    subst. inversion H1.
   - (* *) admit.
   - (* *) inversion Hy2; subst.
     + (* *) inversion Hy1.
@@ -715,7 +717,8 @@ Theorem normalize_ex' : exists e',
   (AMult (ANum 3) (AMult (ANum 2) (ANum 1))) / empty_state
   ==>a* e'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply ex_intro with (x:=(ANum 6)). normalize. (* TODO probably not right *)
+Qed.
 (** [] *)
 
 (* ================================================================= *)
