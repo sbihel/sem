@@ -382,7 +382,33 @@ where "'[' x ':=' s ']' t" := (subst x s t).
 Inductive substi (s:tm) (x:id) : tm -> tm -> Prop :=
   | s_var1 :
       substi s x (tvar x) s
-  (* FILL IN HERE *)
+  | s_var2 :
+      forall x',
+        x <> x' ->
+        substi s x (tvar x') (tvar x')
+  | s_abs1 :
+      forall T t1,
+        substi s x (tabs x T t1) (tabs x T t1)
+  | s_abs2 :
+      forall x' x'' T t1,
+        x <> t1 ->
+        substi s x x' x'' ->
+        substi s x (tabs t1 T x') (tabs t1 T x'')
+  | s_app :
+      forall t1 t2 t1' t2',
+        substi s x t1 t1' ->
+        substi s x t2 t2' ->
+        substi s x (tapp t1 t2) (tapp t1' t2')
+  | s_true :
+      substi s x ttrue ttrue
+  | s_false :
+      substi s x tfalse tfalse
+  | s_if :
+      forall t1 t2 t3 t1' t2' t3',
+        substi s x t1 t1' ->
+        substi s x t2 t2' ->
+        substi s x t3 t3' ->
+        substi s x (tif t1 t2 t3) (tif t1' t2' t3')
 .
 
 Hint Constructors substi.
@@ -390,7 +416,37 @@ Hint Constructors substi.
 Theorem substi_correct : forall s x t t',
   [x:=s]t = t' <-> substi s x t t'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. split; intros H.
+  - (* -> *) generalize dependent t'. induction t; intros t' H.
+    + (* *) unfold subst in H. destruct (beq_id x0 i) eqn:Heq.
+      * (* *) apply beq_id_true_iff in Heq. subst. apply s_var1.
+      * (* *) apply beq_id_false_iff in Heq. subst. apply s_var2. assumption.
+    + (* *) inversion H. eapply s_app.
+      * (* *) apply IHt1. auto.
+      * (* *) apply IHt2. auto.
+    + (* *) unfold subst in H. destruct (beq_id x0 i) eqn:Heq.
+      * (* *) apply beq_id_true_iff in Heq. subst. apply s_abs1.
+      * (* *) apply beq_id_false_iff in Heq. subst.
+        apply s_abs2; try assumption. auto.
+    + (* *) inversion H. apply s_true.
+    + (* *) inversion H. apply s_false.
+    + (* *) inversion H. apply s_if; auto.
+
+  - (* <- *) generalize dependent t'. induction t; intros t' H.
+    + (* *) simpl. inversion H.
+      * (* *) rewrite <- beq_id_refl. reflexivity.
+      * (* *) apply beq_id_false_iff in H1. rewrite H1. reflexivity.
+    + (* *) inversion H. simpl. apply IHt1 in H2. apply IHt2 in H4. subst.
+      reflexivity.
+    + (* *) simpl. inversion H.
+      * (* *) rewrite <- beq_id_refl. reflexivity.
+      * (* *) apply beq_id_false_iff in H4. rewrite H4. apply IHt in H5.
+        rewrite H5. reflexivity.
+    + (* *) inversion H. reflexivity.
+    + (* *) inversion H. reflexivity.
+    + (* *) inversion H. subst. apply IHt1 in H3. apply IHt2 in H5.
+      apply IHt3 in H6. subst. reflexivity.
+Qed.
 (** [] *)
 
 (* ----------------------------------------------------------------- *)
@@ -758,7 +814,16 @@ Example typing_example_3 :
                (tapp (tvar y) (tapp (tvar x) (tvar z)))))) \in
       T.
 Proof with auto.
-  (* FILL IN HERE *) Admitted.
+  exists
+  (TArrow (TArrow TBool TBool)
+    (TArrow (TArrow TBool TBool)
+      (TArrow TBool
+        TBool))).
+  repeat (apply T_Abs).
+  eapply T_App. apply T_Var. reflexivity.
+  eapply T_App. apply T_Var. reflexivity.
+  apply T_Var. auto using update_eq.
+Qed.
 (** [] *)
 
 (** We can also show that terms are _not_ typable.  For example, let's
@@ -801,7 +866,20 @@ Example typing_nonexample_3 :
              (tapp (tvar x) (tvar x))) \in
           T).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold not. intros contra.
+  inversion contra. subst. clear contra.
+  inversion H. subst. clear H.
+  inversion H0. subst. clear H0.
+  inversion H5. subst. clear H5.
+  inversion H2. subst. clear H2.
+  inversion H4. subst. clear H4.
+  inversion H1. subst. clear H1.
+  inversion H2.
+  assert (forall T1 T2, TArrow T1 T2 <> T1).
+  { induction T1; intros T2 contra'; inversion contra'; auto.
+    apply IHT1_1 with (T2:=T1_2). apply H1. }
+  apply H with (T1:=T11) (T2:=T12). assumption.
+Qed.
 (** [] *)
 
 End STLC.
