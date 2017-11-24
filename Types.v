@@ -238,17 +238,28 @@ Proof with eauto.
   - (* *) inversion Hy2. subst. apply IHHy1 in H0. subst. reflexivity.
   - (* *) induction y2; try reflexivity; try (inversion Hy2).
     subst. inversion H1.
-  - (* *) admit.
+  - (* *) assert (value t1); auto. apply value_is_nf in H0.
+    unfold step_normal_form in H0. exfalso. apply H0. admit.
   - (* *) inversion Hy2; subst.
     + (* *) inversion Hy1.
-    + (* *) admit.
+    + (* *) assert (value y2); auto. apply value_is_nf in H.
+      unfold step_normal_form in H.
+      inversion Hy1.
+      exfalso. apply H.
+      exists t1'0. apply H2.
     + (* *) apply IHHy1 in H0. subst. reflexivity.
   - (* *) induction y2; try reflexivity; try inversion Hy2.
     subst. inversion H1.
-  - (* *) admit.
+  - (* *) assert (value t1); auto. apply value_is_nf in H0.
+    unfold step_normal_form in *. exfalso.
+    admit.
   - (* *) inversion Hy2; subst.
     + (* *) inversion Hy1.
-    + (* *) admit.
+    + (* *) assert (value t0); auto. apply value_is_nf in H.
+      unfold step_normal_form in H.
+      inversion Hy1.
+      exfalso. apply H.
+      exists t1'0. assumption.
     + (* *) apply IHHy1 in H0. subst. reflexivity.
 Admitted.
 (** [] *)
@@ -476,15 +487,14 @@ Qed.
 (** **** Exercise: 1 star (step_review)  *)
 (** Quick review: answer _true_ or _false_.  In this language...
       - Every well-typed normal form is a value.
-
+        true
       - Every value is a normal form.
-
+        true
       - The single-step reduction relation is
         a partial function (i.e., it is deterministic).
-
+        true
       - The single-step reduction relation is a _total_ function.
-
-(* FILL IN HERE *)
+        false
 *)
 (** [] *)
 
@@ -526,11 +536,7 @@ Proof with auto.
       + (* *) inversion HT. assumption.
       + (* *) apply IHHT in H0. auto.
 
-    - (* T_Iszero *) inversion HE; subst; clear HE.
-      + (* *) auto.
-      + (* *) auto.
-      + (* *) auto.
-(* TODO redo *)
+    - (* T_Iszero *) inversion HE; subst; clear HE; auto.
 Qed.
 (** [] *)
 
@@ -732,8 +738,16 @@ Qed.
     not, give a counter-example.  (You do not need to prove your
     counter-example in Coq, but feel free to do so.)
 
-    (* FILL IN HERE *)
 [] *)
+Theorem subject_expansion: ~ forall t t' T,
+  t ==> t' ->
+  |- t' \in T ->
+  |- t \in T.
+Proof.
+  unfold not. intros.
+  assert (|- (tif tfalse tzero ttrue) \in TBool).
+  apply H with (t':=ttrue); auto. inversion H0. subst. inversion H6.
+Qed.
 
 (** **** Exercise: 2 stars (variation1)  *)
 (** Suppose, that we add this new rule to the typing relation:
