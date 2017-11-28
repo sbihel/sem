@@ -246,9 +246,17 @@ Definition closed (t:tm) :=
     just for you to think a bit about the meaning of each rule.)
     Although this is a rather low-level, technical definition,
     understanding it is crucial to understanding substitution and its
-    properties, which are really the crux of the lambda-calculus. *)
+    properties, which are really the crux of the lambda-calculus.
 
+afi_var: x appears free when alone
+afi_app1:
+afi_app2:
+afi_abs:
+afi_if1:
+afi_if2:
+afi_if3:
 (* FILL IN HERE *)
+*)
 (** [] *)
 
 (* ================================================================= *)
@@ -585,7 +593,7 @@ Qed.
     then [empty |- t \in T]?  If so, prove it.  If not, give a
     counter-example not involving conditionals.
 
-(* FILL IN HERE *)
+tiff ttrue (tvar x) ttrue
 []
 *)
 
@@ -610,11 +618,11 @@ Proof.
   - (* *) apply progress in Hhas_type.
     destruct Hhas_type; try (apply Hnf in H);
       try (apply Hnot_val in H); inversion H.
-  - (* *) apply progress in Hhas_type. apply IHHmulti.
-    + (* *) destruct Hhas_type; admit.
+  - (* *) apply IHHmulti; clear IHHmulti.
+    + (* *) apply preservation with (t:=x0); assumption.
     + (* *) assumption.
     + (* *) assumption.
-Admitted.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -625,7 +633,18 @@ Admitted.
     given term (in a given context) has at most one type. *)
 (** Formalize this statement and prove it. *)
 
-(* FILL IN HERE *)
+Theorem types_unique : forall Gamma t T1 T2,
+  Gamma |- t \in T1 ->
+  Gamma |- t \in T2 ->
+  T1 = T2.
+Proof.
+  intros. generalize dependent T2.
+  induction H; intros T2 HT2; inversion HT2; eauto; subst.
+  - (* *) rewrite H in H2. inversion H2. reflexivity.
+  - (* *) apply IHhas_type in H5. subst. reflexivity.
+  - (* *) apply IHhas_type1 in H4. apply IHhas_type2 in H6. inversion H4.
+    reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -636,7 +655,12 @@ Admitted.
     and preservation theorems for the simply typed lambda-calculus (as 
     Coq theorems). *) 
 
-(* FILL IN HERE *)
+(*
+Theorem progress : forall t T,
+  empty |- t \in T -> value t \/ (exists t', t ==> t').
+Theorem preservation : forall t t' T,
+  empty |- t \in T -> t ==> t' -> empty |- t' \in T.
+*)
 (** [] *)
 
 (** **** Exercise: 2 starsM (stlc_variation1)  *)
@@ -656,11 +680,11 @@ and the following typing rule:
     false, give a counterexample.
 
       - Determinism of [step]
-(* FILL IN HERE *)
+becomes false, tif ttrue ttrue ttrue => ttrue or zap
       - Progress
-(* FILL IN HERE *)
+remains true
       - Preservation
-(* FILL IN HERE *)
+remains true
 []
 *)
 
@@ -680,11 +704,11 @@ and the following typing rule:
     false, give a counterexample.
 
       - Determinism of [step]
-(* FILL IN HERE *)
+remains true
       - Progress
-(* FILL IN HERE *)
+remains true
       - Preservation
-(* FILL IN HERE *)
+becomes false, foo ==> true with foo having wathever type you want
 []
 *)
 
@@ -696,11 +720,11 @@ and the following typing rule:
     false, give a counterexample.
 
       - Determinism of [step]
-(* FILL IN HERE *)
+remains true
       - Progress
-(* FILL IN HERE *)
+becomes false, tapp (tiff ttrue ttrue ttrue) (tiff ttrue ttrue ttrue)
       - Preservation
-(* FILL IN HERE *)
+remains true
 []
 *)
 
@@ -717,11 +741,11 @@ and the following typing rule:
     false, give a counterexample.
 
       - Determinism of [step]
-(* FILL IN HERE *)
+becomes false, tif ttrue tfalse tfalse ==> ttrue or tfalse
       - Progress
-(* FILL IN HERE *)
+remains true
       - Preservation
-(* FILL IN HERE *)
+becomes false, tif ttrue (tvar x) ttrue ==> ttrue (TBool) or type of x
 []
 *)
 
@@ -740,11 +764,11 @@ and the following typing rule:
     false, give a counterexample.
 
       - Determinism of [step]
-(* FILL IN HERE *)
+remains true
       - Progress
-(* FILL IN HERE *)
+remains true
       - Preservation
-(* FILL IN HERE *)
+becomes false, tapp (tabs x TBool (tabs y TBool ttrue)) ttrue
 []
 *)
 
@@ -763,11 +787,11 @@ and the following typing rule:
     false, give a counterexample.
 
       - Determinism of [step]
-(* FILL IN HERE *)
+remains true
       - Progress
-(* FILL IN HERE *)
+becomes false, tapp ttrue ttrue
       - Preservation
-(* FILL IN HERE *)
+remains true
 []
 *)
 
@@ -784,11 +808,11 @@ and the following typing rule:
     false, give a counterexample.
 
       - Determinism of [step]
-(* FILL IN HERE *)
+remains true
       - Progress
-(* FILL IN HERE *)
+becomes false, tif (tabs x TBool ttrue) ttrue ttrue
       - Preservation
-(* FILL IN HERE *)
+remains true
 []
 *)
 
