@@ -139,7 +139,17 @@ Theorem progress' : forall t T,
 Proof.
   intros t.
   induction t; intros T Ht; auto.
-  (* FILL IN HERE *) Admitted.
+  - (* *) inversion Ht. subst. apply progress in Ht. destruct Ht as [Ht1 | Ht2].
+    + (* *) inversion Ht1.
+    + (* *) right. assumption.
+  - (* *) inversion Ht. subst. right. apply IHt1 in H2. apply IHt2 in H4.
+    apply progress in Ht.
+    destruct H2; destruct H4; destruct Ht; try solve_by_invert; eauto.
+  - (* *) inversion Ht. subst. right. apply IHt1 in H3. apply IHt2 in H5.
+    apply IHt3 in H6. apply progress in Ht.
+    destruct Ht; destruct H3; destruct H5; destruct H6; try solve_by_invert;
+      eauto.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -304,7 +314,10 @@ Corollary typable_empty__closed : forall t T,
     empty |- t \in T  ->
     closed t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold closed. unfold not. intros.
+  inversion H; apply free_in_context with (T:=T) (Gamma:=Gamma) in H0; subst;
+    try (solve_by_inverts 2); eauto.
+Qed.
 (** [] *)
 
 (** Sometimes, when we have a proof [Gamma |- t : T], we will need to
@@ -594,7 +607,14 @@ Proof.
   intros t t' T Hhas_type Hmulti. unfold stuck.
   intros [Hnf Hnot_val]. unfold normal_form in Hnf.
   induction Hmulti.
-  (* FILL IN HERE *) Admitted.
+  - (* *) apply progress in Hhas_type.
+    destruct Hhas_type; try (apply Hnf in H);
+      try (apply Hnot_val in H); inversion H.
+  - (* *) apply progress in Hhas_type. apply IHHmulti.
+    + (* *) destruct Hhas_type; admit.
+    + (* *) assumption.
+    + (* *) assumption.
+Admitted.
 (** [] *)
 
 (* ################################################################# *)
