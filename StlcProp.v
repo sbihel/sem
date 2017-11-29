@@ -340,7 +340,7 @@ Lemma context_invariance : forall Gamma Gamma' t T,
      (forall x, appears_free_in x t -> Gamma x = Gamma' x) ->
      Gamma' |- t \in T.
 
-(** _Proof_: By induction on the derivation of 
+(** _Proof_: By induction on the derivation of
     [Gamma |- t \in T].
 
       - If the last rule in the derivation was [T_Var], then [t = x]
@@ -493,7 +493,7 @@ Lemma substitution_preserves_typing : forall Gamma x U t v T,
     native induction tactic does not give us the induction hypothesis
     that we want.  It is possible to work around this, but the needed
     generalization is a little tricky.  The term [t], on the other
-    hand, is completely generic. 
+    hand, is completely generic.
 *)
 
 Proof with eauto.
@@ -507,7 +507,7 @@ Proof with eauto.
     + (* x=y *)
       subst.
       rewrite update_eq in H2.
-      inversion H2; subst. 
+      inversion H2; subst.
       eapply context_invariance. eassumption.
       apply typable_empty__closed in Ht'. unfold closed in Ht'.
       intros.  apply (Ht' x0) in H0. inversion H0.
@@ -652,8 +652,8 @@ Qed.
 
 (** **** Exercise: 1 starM (progress_preservation_statement)  *)
 (** Without peeking at their statements above, write down the progress
-    and preservation theorems for the simply typed lambda-calculus (as 
-    Coq theorems). *) 
+    and preservation theorems for the simply typed lambda-calculus (as
+    Coq theorems). *)
 
 (*
 Theorem progress : forall t T,
@@ -689,7 +689,7 @@ remains true
 *)
 
 (** **** Exercise: 2 starsM (stlc_variation2)  *)
-(** Suppose instead that we add a new term [foo] with the following 
+(** Suppose instead that we add a new term [foo] with the following
     reduction rules:
 
                        -----------------                (ST_Foo1)
@@ -729,7 +729,7 @@ remains true
 *)
 
 (** **** Exercise: 2 stars, optional (stlc_variation4)  *)
-(** Suppose instead that we add the following new rule to the 
+(** Suppose instead that we add the following new rule to the
     reduction relation:
 
             ----------------------------------        (ST_FunnyIfTrue)
@@ -750,7 +750,7 @@ becomes false, tif ttrue (tvar x) ttrue ==> ttrue (TBool) or type of x
 *)
 
 (** **** Exercise: 2 stars, optional (stlc_variation5)  *)
-(** Suppose instead that we add the following new rule to the typing 
+(** Suppose instead that we add the following new rule to the typing
     relation:
 
                  Gamma |- t1 \in Bool->Bool->Bool
@@ -773,7 +773,7 @@ becomes false, tapp (tabs x TBool (tabs y TBool ttrue)) ttrue
 *)
 
 (** **** Exercise: 2 stars, optional (stlc_variation6)  *)
-(** Suppose instead that we add the following new rule to the typing 
+(** Suppose instead that we add the following new rule to the typing
     relation:
 
                      Gamma |- t1 \in Bool
@@ -796,7 +796,7 @@ remains true
 *)
 
 (** **** Exercise: 2 stars, optional (stlc_variation7)  *)
-(** Suppose we add the following new rule to the typing relation 
+(** Suppose we add the following new rule to the typing relation
     of the STLC:
 
                          ------------------- (T_FunnyAbs)
@@ -868,7 +868,255 @@ Inductive tm : Type :=
       of the original STLC to deal with the new syntactic forms.  Make
       sure Coq accepts the whole file. *)
 
-(* FILL IN HERE *)
+Inductive value : tm -> Prop :=
+  | v_abs : forall x T t,
+      value (tabs x T t)
+  | v_nat : forall n,
+      value (tnat n).
+
+Reserved Notation "'[' x ':=' s ']' t" (at level 20).
+
+Fixpoint subst (x:id) (s:tm) (t:tm) : tm :=
+  match t with
+  | tvar x' =>
+      if beq_id x x' then s else t
+  | tapp t1 t2 =>
+      tapp ([x:=s] t1) ([x:=s] t2)
+  | tabs x' T t1 =>
+      tabs x' T (if beq_id x x' then t1 else ([x:=s] t1))
+  | tnat n =>
+      tnat n
+  | tsucc t =>
+      tsucc ([x := s] t)
+  | tpred t =>
+      tpred ([x := s] t)
+  | tmult t1 t2 =>
+      tmult ([x:=s] t1) ([x:=s] t2)
+  | tif0 t1 t2 t3 =>
+      tif0 ([x := s] t1) ([x := s] t2) ([x := s] t3)
+  end
+
+where "'[' x ':=' s ']' t" := (subst x s t).
+
+Definition context := partial_map ty.
+
+Reserved Notation "t1 '==>' t2" (at level 40).
+
+Inductive step : tm -> tm -> Prop :=
+| ST_AppAbs : forall x T t12 v2,
+    value v2 ->
+    (tapp (tabs x T t12) v2) ==> [x:=v2]t12
+| ST_App1 : forall t1 t1' t2,
+    t1 ==> t1' ->
+    tapp t1 t2 ==> tapp t1' t2
+| ST_App2 : forall v1 t2 t2',
+    value v1 ->
+    t2 ==> t2' ->
+    tapp v1 t2 ==> tapp v1 t2'
+| ST_Succ : forall t t',
+    t ==> t' ->
+    tsucc t ==> tsucc t'
+| ST_SuccV : forall t n,
+    t = tnat n ->
+    tsucc t ==> tnat (S n)
+| ST_Pred : forall t t',
+    t ==> t' ->
+    tpred t ==> tpred t'
+| ST_PredNat : forall n,
+    tpred (tnat n) ==> tnat (pred n)
+| ST_Mult1 : forall t1 t1' t2,
+    t1 ==> t1' ->
+    tmult t1 t2 ==> tmult t1' t2
+| ST_Mult2 : forall t1 t2 t2',
+    value t1 ->
+    t2 ==> t2' ->
+    tmult t1 t2 ==> tmult t1 t2'
+| ST_IfTrue : forall t1 t2 t3 n,
+    t1 = tnat (S n) ->
+    tif0 t1 t2 t3 ==> t2
+| ST_IfFalse : forall t1 t2 t3,
+    t1 = tnat 0 ->
+    tif0 t1 t2 t3 ==> t3
+| ST_If : forall t1 t1' t2 t3,
+    t1 ==> t1' ->
+    (tif0 t1 t2 t3) ==> (tif0 t1' t2 t3)
+
+where "t1 '==>' t2" := (step t1 t2).
+
+Hint Constructors step.
+
+Notation multistep := (multi step).
+Notation "t1 '==>*' t2" := (multistep t1 t2) (at level 40).
+
+Reserved Notation "Gamma '|-' t '\in' T" (at level 40).
+
+Inductive has_type : context -> tm -> ty -> Prop :=
+  | T_Var : forall Gamma x T,
+      Gamma x = Some T ->
+      Gamma |- tvar x \in T
+  | T_App : forall T11 T12 Gamma t1 t2,
+      Gamma |- t1 \in TArrow T11 T12 ->
+      Gamma |- t2 \in T11 ->
+      Gamma |- tapp t1 t2 \in T12
+  | T_Abs : forall Gamma x T11 T12 t12,
+      update Gamma x T11 |- t12 \in T12 ->
+      Gamma |- tabs x T11 t12 \in TArrow T11 T12
+  | T_Nat : forall Gamma x,
+      Gamma |- tnat x \in TNat
+  | T_Succ : forall Gamma x,
+      Gamma |- x \in TNat ->
+      Gamma |- tsucc x \in TNat
+  | T_Pred : forall Gamma x,
+      Gamma |- x \in TNat ->
+      Gamma |- tpred x \in TNat
+  | T_Mult : forall Gamma t1 t2 T,
+      Gamma |- t1 \in T ->
+      Gamma |- t2 \in T ->
+      Gamma |- tmult t1 t2 \in T
+  | T_If0 : forall Gamma t1 t2 t3 T,
+      Gamma |- t1 \in TNat ->
+      Gamma |- t2 \in T ->
+      Gamma |- t3 \in T ->
+      Gamma |- tif0 t1 t2 t3 \in T
+
+where "Gamma '|-' t '\in' T" := (has_type Gamma t T).
+
+Hint Constructors has_type.
+
+(* Lemma canonical_forms_fun : forall t T1 T2, *)
+(*   empty |- t \in (TArrow T1 T2) ->          *)
+(*   value t ->                                *)
+(*   exists x u, t = tabs x T1 u.              *)
+(* Proof.                                      *)
+(* Admitted.                                   *)
+
+(* Theorem progress : forall t T,              *)
+(*      empty |- t \in T ->                    *)
+(*      value t \/ exists t', t ==> t'.        *)
+(* Proof.                                      *)
+(* Admitted.                                   *)
+
+Inductive appears_free_in : id -> tm -> Prop :=
+  | afi_var : forall x,
+      appears_free_in x (tvar x)
+  | afi_app1 : forall x t1 t2,
+      appears_free_in x t1 -> appears_free_in x (tapp t1 t2)
+  | afi_app2 : forall x t1 t2,
+      appears_free_in x t2 -> appears_free_in x (tapp t1 t2)
+  | afi_abs : forall x y T11 t12,
+      y <> x  ->
+      appears_free_in x t12 ->
+      appears_free_in x (tabs y T11 t12)
+  | afi_nat : forall x n,
+      appears_free_in x (tnat n)
+  | afi_succ : forall x n,
+      appears_free_in x (tsucc n)
+  | afi_pred : forall x n,
+      appears_free_in x (tpred n)
+  | afi_mult1 : forall x t1 t2,
+      appears_free_in x t1 ->
+      appears_free_in x (tmult t1 t2)
+  | afi_mult2 : forall x t1 t2,
+      appears_free_in x t2 ->
+      appears_free_in x (tmult t1 t2)
+  | afi_if01 : forall x t1 t2 t3,
+      appears_free_in x t1 ->
+      appears_free_in x (tif0 t1 t2 t3)
+  | afi_if02 : forall x t1 t2 t3,
+      appears_free_in x t2 ->
+      appears_free_in x (tif0 t1 t2 t3)
+  | afi_if03 : forall x t1 t2 t3,
+      appears_free_in x t3 ->
+      appears_free_in x (tif0 t1 t2 t3).
+
+Hint Constructors appears_free_in.
+
+Lemma context_invariance : forall Gamma Gamma' t T,
+     Gamma |- t \in T  ->
+     (forall x, appears_free_in x t -> Gamma x = Gamma' x) ->
+     Gamma' |- t \in T.
+Proof with eauto.
+  intros.
+  generalize dependent Gamma'.
+  induction H; intros; auto.
+  - (* T_Var *)
+    apply T_Var. rewrite <- H0...
+  - (* T_App *)
+    apply T_App with T11...
+  - (* T_Abs *)
+    apply T_Abs.
+    apply IHhas_type. intros x1 Hafi.
+    (* the only tricky step... the [Gamma'] we use to
+       instantiate is [update Gamma x T11] *)
+    unfold update. unfold t_update. destruct (beq_id x0 x1) eqn: Hx0x1...
+    rewrite beq_id_false_iff in Hx0x1. auto.
+Qed.
+(* reordered T_App and T_Abs *)
+
+Definition closed (t:tm) :=
+  forall x, ~ appears_free_in x t.
+
+Corollary typable_empty__closed : forall t T,
+    empty |- t \in T  ->
+    closed t.
+Proof.
+  unfold closed. unfold not. intros.
+  inversion H; apply free_in_context with (T:=T) (Gamma:=Gamma) in H0; subst;
+    try (solve_by_inverts 2); eauto.
+Qed.
+
+Lemma substitution_preserves_typing : forall Gamma x U t v T,
+     update Gamma x U |- t \in T ->
+     empty |- v \in U   ->
+     Gamma |- [x:=v]t \in T.
+Proof with eauto.
+  intros Gamma x U t v T Ht Ht'.
+  generalize dependent Gamma. generalize dependent T.
+  induction t; intros T Gamma H;
+    (* in each case, we'll want to get at the derivation of H *)
+    inversion H; subst; simpl...
+  - (* tvar *)
+    rename i into y. destruct (beq_idP x y) as [Hxy|Hxy].
+    + (* x=y *)
+      subst.
+      rewrite update_eq in H2.
+      inversion H2; subst.
+      eapply context_invariance. eassumption.
+      apply typable_empty__closed in Ht'. unfold closed in Ht'.
+      intros.  apply (Ht' x0) in H0. inversion H0.
+    + (* x<>y *)
+      apply T_Var. rewrite update_neq in H2...
+  - (* tabs *)
+    rename i into y. rename t into T. apply T_Abs.
+    destruct (beq_idP x y) as [Hxy | Hxy].
+    + (* x=y *)
+      subst. rewrite update_shadow in H5. apply H5.
+    + (* x<>y *)
+      apply IHt. eapply context_invariance...
+      intros z Hafi. unfold update, t_update.
+      destruct (beq_idP y z) as [Hyz | Hyz]; subst; trivial.
+      rewrite <- beq_id_false_iff in Hxy.
+      rewrite Hxy...
+Qed.
+
+Theorem preservation : forall t t' T,
+     empty |- t \in T  ->
+     t ==> t'  ->
+     empty |- t' \in T.
+Proof with eauto.
+  remember (@empty ty) as Gamma.
+  intros t t' T HT. generalize dependent t'.
+  induction HT;
+       intros t' HE; subst Gamma; subst;
+       try solve [inversion HE; subst; auto].
+  - (* T_App *)
+    inversion HE; subst...
+    (* Most of the cases are immediate by induction,
+       and [eauto] takes care of them *)
+    + (* ST_AppAbs *)
+      apply substitution_preserves_typing with T11...
+      inversion HT1...
+Qed.
 (** [] *)
 
 End STLCArith.
