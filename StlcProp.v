@@ -248,14 +248,14 @@ Definition closed (t:tm) :=
     understanding it is crucial to understanding substitution and its
     properties, which are really the crux of the lambda-calculus.
 
-afi_var: x appears free when alone
-afi_app1:
-afi_app2:
-afi_abs:
-afi_if1:
-afi_if2:
-afi_if3:
-(* FILL IN HERE *)
+afi_var: x appears free when alone abviously
+afi_app1: x appears free at least in one part
+afi_app2: x appears free at least in one part
+afi_abs: if x is free in the body, and doesn't appear in the argument, then x
+         appears free
+afi_if1: x appears free at least in one part
+afi_if2: x appears free at least in one part
+afi_if3: x appears free at least in one part
 *)
 (** [] *)
 
@@ -916,9 +916,8 @@ Inductive step : tm -> tm -> Prop :=
 | ST_Succ : forall t t',
     t ==> t' ->
     tsucc t ==> tsucc t'
-| ST_SuccV : forall t n,
-    t = tnat n ->
-    tsucc t ==> tnat (S n)
+| ST_SuccNat : forall n,
+    tsucc (tnat n) ==> tnat (S n)
 | ST_Pred : forall t t',
     t ==> t' ->
     tpred t ==> tpred t'
@@ -931,12 +930,10 @@ Inductive step : tm -> tm -> Prop :=
     value t1 ->
     t2 ==> t2' ->
     tmult t1 t2 ==> tmult t1 t2'
-| ST_IfTrue : forall t1 t2 t3 n,
-    t1 = tnat (S n) ->
-    tif0 t1 t2 t3 ==> t2
-| ST_IfFalse : forall t1 t2 t3,
-    t1 = tnat 0 ->
-    tif0 t1 t2 t3 ==> t3
+| ST_IfTrue : forall t2 t3 n,
+    tif0 (tnat (S n)) t2 t3 ==> t2
+| ST_IfFalse : forall t2 t3,
+    tif0 (tnat 0) t2 t3 ==> t3
 | ST_If : forall t1 t1' t2 t3,
     t1 ==> t1' ->
     (tif0 t1 t2 t3) ==> (tif0 t1' t2 t3)
@@ -983,19 +980,6 @@ where "Gamma '|-' t '\in' T" := (has_type Gamma t T).
 
 Hint Constructors has_type.
 
-(* Lemma canonical_forms_fun : forall t T1 T2, *)
-(*   empty |- t \in (TArrow T1 T2) ->          *)
-(*   value t ->                                *)
-(*   exists x u, t = tabs x T1 u.              *)
-(* Proof.                                      *)
-(* Admitted.                                   *)
-
-(* Theorem progress : forall t T,              *)
-(*      empty |- t \in T ->                    *)
-(*      value t \/ exists t', t ==> t'.        *)
-(* Proof.                                      *)
-(* Admitted.                                   *)
-
 Inductive appears_free_in : id -> tm -> Prop :=
   | afi_var : forall x,
       appears_free_in x (tvar x)
@@ -1007,12 +991,18 @@ Inductive appears_free_in : id -> tm -> Prop :=
       y <> x  ->
       appears_free_in x t12 ->
       appears_free_in x (tabs y T11 t12)
-  | afi_nat : forall x n,
-      appears_free_in x (tnat n)
   | afi_succ : forall x n,
+      appears_free_in x n ->
       appears_free_in x (tsucc n)
+  | afi_succNat : forall x n,
+      appears_free_in x (tnat n) ->
+      appears_free_in x (tsucc (tnat n))
   | afi_pred : forall x n,
+      appears_free_in x n ->
       appears_free_in x (tpred n)
+  | afi_predNat : forall x n,
+      appears_free_in x (tnat n) ->
+      appears_free_in x (tpred (tnat n))
   | afi_mult1 : forall x t1 t2,
       appears_free_in x t1 ->
       appears_free_in x (tmult t1 t2)
@@ -1055,6 +1045,21 @@ Qed.
 
 Definition closed (t:tm) :=
   forall x, ~ appears_free_in x t.
+
+Lemma free_in_context : forall x t T Gamma,
+   appears_free_in x t ->
+   Gamma |- t \in T ->
+   exists T', Gamma x = Some T'.
+Proof.
+  intros x t T Gamma H H0. generalize dependent Gamma.
+  generalize dependent T.
+  induction H;
+         intros; try solve [inversion H0; eauto].
+  - (* afi_abs *)
+    inversion H1; subst.
+    apply IHappears_free_in in H7.
+    rewrite update_neq in H7; assumption.
+Qed.
 
 Corollary typable_empty__closed : forall t T,
     empty |- t \in T  ->
