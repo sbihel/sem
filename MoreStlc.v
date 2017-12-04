@@ -1011,9 +1011,16 @@ Fixpoint subst (x:id) (s:tm) (t:tm) : tm :=
       tmult (subst x s t1) (subst x s t2)
   | tif0 t1 t2 t3 =>
       tif0 (subst x s t1) (subst x s t2) (subst x s t3)
-  (* FILL IN HERE *)
+  | tfst t1 =>
+      tfst (subst x s t1)
+  | tsnd t1 =>
+      tsnd (subst x s t1)
+  | tpair t1 t2 =>
+      tpair (subst x s t1) (subst x s t2)
   | tunit => tunit
-  (* FILL IN HERE *)
+  | tlet y t1 t2 =>
+      if beq_id x y then tlet y (subst x s t1) t2
+                    else tlet y (subst x s t1) (subst x s t2)
   | tinl T t1 =>
       tinl T (subst x s t1)
   | tinr T t1 =>
@@ -1115,9 +1122,34 @@ Inductive step : tm -> tm -> Prop :=
   | ST_If0Nonzero : forall n t2 t3,
        (tif0 (tnat (S n)) t2 t3) ==> t3
   (* pairs *)
-  (* FILL IN HERE *)
+  | ST_Pair1 : forall t1 t1' t2,
+      t1 ==> t1' ->
+      tpair t1 t2 ==> tpair t1' t2
+  | ST_Pair2 : forall v1 t2 t2',
+      value v1 ->
+      t2 ==> t2' ->
+      tpair v1 t2 ==> tpair v1 t2'
+  | ST_Fst1 : forall t1 t1',
+      t1 ==> t1' ->
+      tfst t1 ==> tfst t1'
+  | ST_FstPair : forall v1 v2,
+      value v1 ->
+      value v2 ->
+      tfst (tpair v1 v2) ==> v1
+  | ST_Snd1 : forall t1 t1',
+      t1 ==> t1' ->
+      tsnd t1 ==> tsnd t1'
+  | ST_SndPair : forall v1 v2,
+      value v1 ->
+      value v2 ->
+      tsnd (tpair v1 v2) ==> v2
   (* let *)
-  (* FILL IN HERE *)
+  | ST_Let1 : forall x t1 t1' t2,
+      t1 ==> t1' ->
+      tlet x t1 t2 ==> tlet x t1' t2
+  | ST_LetValue : forall x v1 t2,
+      value v1 ->
+      tlet x v1 t2 ==> subst x v1 t2
   (* sums *)
   | ST_Inl : forall t1 t1' T,
         t1 ==> t1' ->
@@ -1202,12 +1234,24 @@ Inductive has_type : context -> tm -> ty -> Prop :=
       Gamma |- t3 \in T1 ->
       Gamma |- (tif0 t1 t2 t3) \in T1
   (* pairs *)
-  (* FILL IN HERE *)
+  | T_Pair : forall Gamma t1 t2 T1 T2,
+      Gamma |- t1 \in T1 ->
+      Gamma |- t2 \in T2 ->
+      Gamma |- (tpair t1 t2) \in (TProd T1 T2)
+  | T_Fst : forall Gamma t1 T11 T12,
+      Gamma |- t1 \in (TProd T11 T12) ->
+      Gamma |- (tfst t1) \in T11
+  | T_Snd : forall Gamma t1 T11 T12,
+      Gamma |- t1 \in (TProd T11 T12) ->
+      Gamma |- (tsnd t1) \in T12
   (* unit *)
   | T_Unit : forall Gamma,
       Gamma |- tunit \in TUnit
   (* let *)
-  (* FILL IN HERE *)
+  | T_Let : forall Gamma x t1 t2 T1 T2,
+      Gamma |- t1 \in T1 ->
+      (update Gamma x T1) |- t2 \in T2 ->
+      Gamma |- (tlet x t1 t2) \in T2
   (* sums *)
   | T_Inl : forall Gamma t1 T1 T2,
       Gamma |- t1 \in T1 ->
@@ -1258,23 +1302,23 @@ Module Examples.
 
 (** First, let's define a few variable names: *)
 
-Notation x := (Id "x").
-Notation y := (Id "y").
-Notation a := (Id "a").
-Notation f := (Id "f").
-Notation g := (Id "g").
-Notation l := (Id "l").
-Notation k := (Id "k").
-Notation i1 := (Id "i1").
-Notation i2 := (Id "i2").
-Notation processSum := (Id "processSum").
-Notation n := (Id "n").
-Notation eq := (Id "eq").
-Notation m := (Id "m").
-Notation evenodd := (Id "evenodd").
-Notation even := (Id "even").
-Notation odd := (Id "odd").
-Notation eo := (Id "eo").
+Notation x := (Id 24).
+Notation y := (Id 25).
+Notation a := (Id 1).
+Notation f := (Id 6).
+Notation g := (Id 7).
+Notation l := (Id 12).
+Notation k := (Id 11).
+Notation i1 := (Id 91).
+Notation i2 := (Id 92).
+Notation processSum := (Id 666).
+Notation n := (Id 14).
+Notation eq := (Id 517).
+Notation m := (Id 13).
+Notation evenodd := (Id 2121).
+Notation even := (Id 222).
+Notation odd := (Id 111).
+Notation eo := (Id 515).
 
 (** Next, a bit of Coq hackery to automate searching for typing
     derivations.  You don't need to understand this bit in detail --
@@ -1317,7 +1361,6 @@ Definition test :=
 (** Remove the comment braces once you've implemented enough of the
     definitions that you think this should work. *)
 
-(* 
 Example typechecks :
   empty |- test \in TNat.
 Proof.
@@ -1333,7 +1376,6 @@ Example numtest_reduces :
 Proof.
   unfold test. normalize.
 Qed.
-*)
 
 End Numtest.
 
@@ -1352,7 +1394,6 @@ Definition test :=
           (tnat 6))
         (tnat 7))).
 
-(* 
 Example typechecks :
   empty |- test \in TNat.
 Proof. unfold test. eauto 15. Qed.
@@ -1360,7 +1401,6 @@ Proof. unfold test. eauto 15. Qed.
 Example reduces :
   test ==>* tnat 6.
 Proof. unfold test. normalize. Qed.
-*)
 
 End Prodtest.
 
@@ -1376,7 +1416,6 @@ Definition test :=
     (tpred (tnat 6))
     (tsucc (tvar x)).
 
-(* 
 Example typechecks :
   empty |- test \in TNat.
 Proof. unfold test. eauto 15. Qed.
@@ -1384,7 +1423,6 @@ Proof. unfold test. eauto 15. Qed.
 Example reduces :
   test ==>* tnat 6.
 Proof. unfold test. normalize. Qed.
-*)
 
 End LetTest.
 
@@ -1402,7 +1440,6 @@ Definition test :=
     x (tvar x)
     y (tvar y).
 
-(* 
 Example typechecks :
   empty |- test \in TNat.
 Proof. unfold test. eauto 15. Qed.
@@ -1410,7 +1447,6 @@ Proof. unfold test. eauto 15. Qed.
 Example reduces :
   test ==>* (tnat 5).
 Proof. unfold test. normalize. Qed.
-*)
 
 End Sumtest1.
 
@@ -1434,7 +1470,6 @@ Definition test :=
       (tapp (tvar processSum) (tinl TNat (tnat 5)))
       (tapp (tvar processSum) (tinr TNat (tnat 5)))).
 
-(* 
 Example typechecks :
   empty |- test \in (TProd TNat TNat).
 Proof. unfold test. eauto 15. Qed.
@@ -1442,7 +1477,6 @@ Proof. unfold test. eauto 15. Qed.
 Example reduces :
   test ==>* (tpair (tnat 5) (tnat 0)).
 Proof. unfold test. normalize. Qed.
-*)
 
 End Sumtest2.
 
@@ -1463,7 +1497,6 @@ Definition test :=
        (tnat 0)
        x y (tmult (tvar x) (tvar x))).
 
-(* 
 Example typechecks :
   empty |- test \in TNat.
 Proof. unfold test. eauto 20. Qed.
@@ -1471,7 +1504,6 @@ Proof. unfold test. eauto 20. Qed.
 Example reduces :
   test ==>* (tnat 25).
 Proof. unfold test. normalize. Qed.
-*)
 
 End ListTest.
 
