@@ -1039,8 +1039,8 @@ Fixpoint subst (x:id) (s:tm) (t:tm) : tm :=
            t3
          else if beq_id x y2 then t3
               else (subst x s t3))
-  (* FILL IN HERE *)
-  | _ => t  (* ... and delete this line *)
+  | tfix t1 =>
+      tfix (subst x s t1)
   end.
 
 Notation "'[' x ':=' s ']' t" := (subst x s t) (at level 20).
@@ -1184,7 +1184,11 @@ Inductive step : tm -> tm -> Prop :=
        value vl  ->
        (tlcase (tcons v1 vl) t2 x1 x2 t3) ==> (subst x2 vl (subst x1 v1 t3))
   (* fix *)
-  (* FILL IN HERE *)
+  | ST_Fix1 : forall t1 t1',
+      t1 ==> t1' ->
+      (tfix t1) ==> (tfix t1')
+  | ST_FixAbs : forall xf t2 T1,
+      (tfix (tabs xf T1 t2)) ==> [xf:=tfix (tabs xf T1 t2)]t2
 
 where "t1 '==>' t2" := (step t1 t2).
 
@@ -1277,7 +1281,9 @@ Inductive has_type : context -> tm -> ty -> Prop :=
       (update (update Gamma x2 (TList T1)) x1 T1) |- t3 \in T2 ->
       Gamma |- (tlcase t1 t2 x1 x2 t3) \in T2
   (* fix *)
-  (* FILL IN HERE *)
+  | T_Fix : forall Gamma t1 T1,
+      Gamma |- t1 \in (TArrow T1 T1) ->
+      Gamma |- (tfix t1) \in T1
 
 where "Gamma '|-' t '\in' T" := (has_type Gamma t T).
 
@@ -1530,18 +1536,14 @@ Definition fact :=
 (** (Warning: you may be able to typecheck [fact] but still have some
     rules wrong!) *)
 
-(* 
 Example fact_typechecks :
   empty |- fact \in (TArrow TNat TNat).
 Proof. unfold fact. auto 10.
 Qed.
-*)
 
-(* 
 Example fact_example:
   (tapp fact (tnat 4)) ==>* (tnat 24).
 Proof. unfold fact. normalize. Qed.
-*)
 
 End FixTest1.
 
@@ -1565,7 +1567,6 @@ Definition map :=
             a l (tcons (tapp (tvar g) (tvar a))
                          (tapp (tvar f) (tvar l))))))).
 
-(* 
 (* Make sure you've uncommented the last [Hint Extern] above... *)
 Example map_typechecks :
   empty |- map \in
@@ -1579,7 +1580,6 @@ Example map_example :
          (tcons (tnat 1) (tcons (tnat 2) (tnil TNat)))
   ==>* (tcons (tnat 2) (tcons (tnat 3) (tnil TNat))).
 Proof. unfold map. normalize. Qed.
-*)
 
 End FixTest2.
 
@@ -1606,24 +1606,18 @@ Definition equal :=
                               (tpred (tvar m)))
                       (tpred (tvar n)))))))).
 
-(* 
 Example equal_typechecks :
   empty |- equal \in (TArrow TNat (TArrow TNat TNat)).
 Proof. unfold equal. auto 10.
 Qed.
-*)
 
-(* 
 Example equal_example1:
   (tapp (tapp equal (tnat 4)) (tnat 4)) ==>* (tnat 1).
 Proof. unfold equal. normalize. Qed.
-*)
 
-(* 
 Example equal_example2:
   (tapp (tapp equal (tnat 4)) (tnat 5)) ==>* (tnat 0).
 Proof. unfold equal. normalize. Qed.
-*)
 
 End FixTest3.
 
@@ -1659,18 +1653,14 @@ Definition eotest :=
     (tapp (tvar even) (tnat 3))
     (tapp (tvar even) (tnat 4))))).
 
-(* 
 Example eotest_typechecks :
   empty |- eotest \in (TProd TNat TNat).
 Proof. unfold eotest. eauto 30.
 Qed.
-*)
 
-(* 
 Example eotest_example1:
   eotest ==>* (tpair (tnat 0) (tnat 1)).
 Proof. unfold eotest. normalize. Qed.
-*)
 
 End FixTest4.
 
@@ -1781,11 +1771,25 @@ Proof with eauto.
     + (* t1 steps *)
       inversion H as [t1' H0].
       exists (tif0 t1' t2 t3)...
-  (* FILL IN HERE *)
+  - (* T_Pair *)
+    destruct IHHt1; destruct IHHt2...
+    + (* t2 steps *) destruct H0. right...
+    + (* t1 steps *) destruct H. right...
+    + (* t1 steps *) destruct H. right...
+  - (* T_Fst *)
+    destruct IHHt...
+    + (* t1 is a value *) destruct H; inversion Ht...
+    + (* t1 steps *) destruct H...
+  - (* T_Snd *)
+    destruct IHHt...
+    + (* t1 is a value *) destruct H; inversion Ht...
+    + (* t1 steps *) destruct H...
   - (* T_Unit *)
     left...
   (* let *)
-  (* FILL IN HERE *)
+  - (* T_Let *)
+    destruct IHHt1...
+    destruct H. right...
   - (* T_Inl *)
     destruct IHHt...
     + (* t1 steps *)
@@ -1833,7 +1837,10 @@ Proof with eauto.
       inversion H as [t1' Hstp].
       exists (tlcase t1' t2 x1 x2 t3)...
   (* fix *)
-  (* FILL IN HERE *)
+  - (* T_Fix *)
+    destruct IHHt...
+    + (* t1 is a value *) destruct H; inversion Ht...
+    + (* t1 steps *) destruct H...
 Qed.
 
 (* ----------------------------------------------------------------- *)
