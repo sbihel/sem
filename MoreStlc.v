@@ -655,7 +655,11 @@ Require Import Stlc.
            else if (pred x)=0 then 0
            else 1 + (halve (pred (pred x))))
 
-(* FILL IN HERE *)
+      halve = fix (\t:Nat -> Nat
+                    \x:Nat.
+                      if x=0 then 0
+                      else if (pred x)=0 then 0
+                      else 1 + (t (pred (pred x))))
 []
 *)
 
@@ -664,7 +668,28 @@ Require Import Stlc.
     through to reduce to a normal form (assuming the usual reduction
     rules for arithmetic operations).
 
-    (* FILL IN HERE *)
+
+  (\x. if x=0 then 1 else x * (fix F (pred x))) 1
+
+[==>] [ST_AppAbs]
+
+  if 1=0 then 1 else 1 * (fix F (pred 1))
+
+[==>] [ST_If0_Nonzero]
+
+  1 * (fix F (pred 1))
+
+[==>] [ST_FixAbs + ST_Mult2]
+
+  1 * ((\x. if x=0 then 1 else x * (fix F (pred x))) (pred 1))
+
+[==>] [ST_AppAbs]
+
+  1 * (if 0 = 0 then 1 else 1 * (fix F (pred 0)))
+
+[==>] [ST_If0_Zero]
+
+  1 * 1 = 1
 []
 *)
 
@@ -1894,7 +1919,6 @@ Inductive appears_free_in : id -> tm -> Prop :=
       appears_free_in x (tsnd t)
   (* let *)
   | afi_let1 : forall x y t1 t2,
-      y <> x ->
       appears_free_in x t1 ->
       appears_free_in x (tlet y t1 t2)
   | afi_let2 : forall x y t1 t2,
@@ -1968,7 +1992,10 @@ Proof with eauto.
     apply T_Pair...
   (* let *)
   - (* T_Let *)
-    eapply T_Let; admit.
+    eapply T_Let...
+    apply IHhas_type2. intros. unfold update, t_update.
+    destruct (beq_id x x0) eqn:Hbeq...
+    rewrite beq_id_false_iff in Hbeq...
   - (* T_Case *)
     eapply T_Case...
     + apply IHhas_type2. intros y Hafi.
