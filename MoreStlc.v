@@ -1880,9 +1880,27 @@ Inductive appears_free_in : id -> tm -> Prop :=
      appears_free_in x t3 ->
      appears_free_in x (tif0 t1 t2 t3)
   (* pairs *)
-  (* FILL IN HERE *)
+  | afi_pair1 : forall x t1 t2,
+      appears_free_in x t1 ->
+      appears_free_in x (tpair t1 t2)
+  | afi_pair2 : forall x t1 t2,
+      appears_free_in x t2 ->
+      appears_free_in x (tpair t1 t2)
+  | afi_fst : forall x t,
+      appears_free_in x t ->
+      appears_free_in x (tfst t)
+  | afi_snd : forall x t,
+      appears_free_in x t ->
+      appears_free_in x (tsnd t)
   (* let *)
-  (* FILL IN HERE *)
+  | afi_let1 : forall x y t1 t2,
+      y <> x ->
+      appears_free_in x t1 ->
+      appears_free_in x (tlet y t1 t2)
+  | afi_let2 : forall x y t1 t2,
+      y <> x ->
+      appears_free_in x t2 ->
+      appears_free_in x (tlet y t1 t2)
   (* sums *)
   | afi_inl : forall x t T,
       appears_free_in x t ->
@@ -1920,7 +1938,9 @@ Inductive appears_free_in : id -> tm -> Prop :=
      appears_free_in x t3 ->
      appears_free_in x (tlcase t1 t2 y1 y2 t3)
   (* fix *)
-  (* FILL IN HERE *)
+  | afi_fix : forall x t,
+     appears_free_in x t ->
+     appears_free_in x (tfix t)
 .
 
 Hint Constructors appears_free_in.
@@ -1944,9 +1964,11 @@ Proof with eauto.
   - (* T_If0 *)
     apply T_If0...
   (* pair *)
-  (* FILL IN HERE *)
+  - (* T_Pair *)
+    apply T_Pair...
   (* let *)
-  (* FILL IN HERE *)
+  - (* T_Let *)
+    eapply T_Let; admit.
   - (* T_Case *)
     eapply T_Case...
     + apply IHhas_type2. intros y Hafi.
@@ -1976,7 +1998,10 @@ Proof with eauto.
     unfold update, t_update in Hctx.
     rewrite false_beq_id in Hctx...
   (* let *)
-  (* FILL IN HERE *)
+  - (* T_Let *)
+    destruct IHHtyp2 as [T' Hctx]...
+    unfold update, t_update in Hctx.
+    rewrite false_beq_id in Hctx...
   (* T_Case *)
   - (* left *)
     destruct IHHtyp2 as [T' Hctx]... exists T'.
@@ -2079,7 +2104,21 @@ Proof with eauto.
       subst.
       rewrite false_beq_id...
   (* let *)
-  (* FILL IN HERE *)
+  - (* tlet *)
+    rename i into y.
+    destruct (beq_id x y) eqn:Hbeq.
+    + (* x = y *)
+      rewrite beq_id_true_iff in Hbeq.
+      eapply T_Let...
+      rewrite Hbeq in *.
+      eapply context_invariance... intros x0 Hafi. unfold update, t_update.
+      destruct (beq_id y x0)...
+    + (* x <> y *)
+      eapply T_Let... apply IHt2.
+      eapply context_invariance... intros x0 Hafi. unfold update, t_update.
+      destruct (beq_id y x0) eqn:Hyx0... destruct (beq_id x x0) eqn:Hxx0...
+      rewrite beq_id_false_iff in Hbeq. rewrite beq_id_true_iff in *.
+      rewrite Hyx0 in Hbeq. rewrite Hxx0 in Hbeq. exfalso...
   - (* tcase *)
     rename i into x1. rename i0 into x2.
     eapply T_Case...
@@ -2174,9 +2213,14 @@ Proof with eauto.
       apply substitution_preserves_typing with T1...
       inversion HT1...
   (* fst and snd *)
-  (* FILL IN HERE *)
+  - (* T_Fst *)
+    inversion HT...
+  - (* T_Snd *)
+    inversion HT...
   (* let *)
-  (* FILL IN HERE *)
+  - (* T_Let *)
+    inversion HE... subst.
+    apply substitution_preserves_typing with T1...
   (* T_Case *)
   - (* ST_CaseInl *)
     inversion HT1; subst.
@@ -2190,7 +2234,9 @@ Proof with eauto.
       apply substitution_preserves_typing with (TList T1)...
       apply substitution_preserves_typing with T1...
   (* fix *)
-  (* FILL IN HERE *)
+  - (* T_Fix *)
+    inversion HT... subst.
+    eapply substitution_preserves_typing...
 Qed.
 
 End STLCExtended.
